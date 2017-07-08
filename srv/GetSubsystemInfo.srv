@@ -1,0 +1,21 @@
+---
+bool is_initialized
+
+string[] upper_inputs
+string[] alias_upper_inputs
+
+string[] lower_inputs
+string[] alias_lower_inputs
+
+string[] upper_outputs
+string[] alias_upper_outputs
+
+string[] lower_outputs
+string[] alias_lower_outputs
+
+ComponentInfo[] components
+
+BehaviorInfo[] behaviors
+
+ConnectionInfo[] connections
+
