@@ -104,18 +104,22 @@ class SubsystemWidget(QWidget):
             del w
 
     @Slot()
-    def on_click(self):
-        #self.dialogGraph.exec_()
-        self.dialogGraph.show()
+    def on_click_showBehaviorGraph(self):
+        #self.dialogBehaviorGraph.exec_()
+        self.dialogBehaviorGraph.show()
 
     @Slot()
-    def on_click_showHistory(self):
-        #self.dialogGraph.exec_()
-        self.dialogHistory.show()
+    def on_click_showBehaviorHistory(self):
+        #self.dialogBehaviorGraph.exec_()
+        self.dialogBehaviorHistory.show()
 
     @Slot()
-    def on_click_showComponents(self):
+    def on_click_showComponentsList(self):
         self.dialogComponents.show()
+
+    @Slot()
+    def on_click_showStateMachineGraph(self):
+        self.dialogStateMachineGraph.show()
 
     def __init__(self, plugin=None, name=None):
         """
@@ -156,14 +160,20 @@ class SubsystemWidget(QWidget):
 
         self.graph = None
 
-        self.dialogGraph = subsystem_graph.GraphDialog(self.subsystem_name, self)
-        self.showGraph.clicked.connect(self.on_click)
+        self.dialogBehaviorGraph = subsystem_graph.BehaviorGraphDialog(self.subsystem_name, self)
+        self.showBehaviorGraph.clicked.connect(self.on_click_showBehaviorGraph)
 
-        self.dialogHistory = subsystem_state_history.StateHistoryDialog(self.subsystem_name, self)
-        self.showHistory.clicked.connect(self.on_click_showHistory)
+        self.dialogBehaviorHistory = subsystem_state_history.StateHistoryDialog(self.subsystem_name, self)
+        self.showBehaviorHistory.clicked.connect(self.on_click_showBehaviorHistory)
 
         self.dialogComponents = subsystem_components.ComponentsDialog(self.subsystem_name, self)
-        self.showComponents.clicked.connect(self.on_click_showComponents)
+        self.showComponentsList.clicked.connect(self.on_click_showComponentsList)
+
+        self.dialogStateMachineGraph = subsystem_graph.StateMachineGraphDialog(self.subsystem_name, self)
+        self.showStateMachineGraph.clicked.connect(self.on_click_showStateMachineGraph)
+
+        self.dialogStateMachineGraph = subsystem_graph.StateMachineGraphDialog(self.subsystem_name, self)
+        self.showStateMachineGraph.clicked.connect(self.on_click_showStateMachineGraph)
 
     def isInitialized(self):
         return self.initialized
@@ -432,11 +442,11 @@ class SubsystemWidget(QWidget):
 
 
     def exportGraphs(self):
-        graphs_list = ["<all>"]#, "<always running>"]
+        behavior_graphs_list = ["<all>"]#, "<always running>"]
         for behavior in self.subsystem_info.behaviors:
-            graphs_list.append(behavior.name)
+            behavior_graphs_list.append(behavior.name)
 
-        for graph_name in graphs_list:
+        for graph_name in behavior_graphs_list:
             self.exportGraph(graph_name)
 
     def generateGraph(self, graph_name, use_latex):
@@ -547,11 +557,11 @@ class SubsystemWidget(QWidget):
             for conn in self.subsystem_info.connections:
                 self.all_connections.append( (conn.component_from, conn.port_from, conn.component_to, conn.port_to) )
 
-            graphs_list = ["<all>"]#, "<always running>"]
+            behavior_graphs_list = ["<all>"]#, "<always running>"]
             for behavior in self.subsystem_info.behaviors:
-                graphs_list.append(behavior.name)
+                behavior_graphs_list.append(behavior.name)
 
-            for graph_name in graphs_list:
+            for graph_name in behavior_graphs_list:
                 gr = self.generateGraph(graph_name, False)
                 dot = gr[0]
                 in_read, in_write = os.pipe()
@@ -564,9 +574,12 @@ class SubsystemWidget(QWidget):
                 os.close(out_read)
                 graph_str = graph_str.replace("\\\n", "")
 
-                self.dialogGraph.addGraph(graph_name, graph_str)
+                self.dialogBehaviorGraph.addGraph(graph_name, graph_str)
+                self.dialogStateMachineGraph.addGraph(graph_name, graph_str)
 
-            self.dialogGraph.showGraph("<all>")
+            self.dialogBehaviorGraph.showGraph("<all>")
+
+            self.dialogStateMachineGraph.showGraph("<all>")
             self.graph = True
 
         components_state = {}
@@ -581,7 +594,8 @@ class SubsystemWidget(QWidget):
         # update dialogs
         #
         self.dialogComponents.updateState(components_state, components_diag_msgs)
-        self.dialogGraph.updateState(components_state)
+        self.dialogBehaviorGraph.updateState(components_state)
+        self.dialogStateMachineGraph.updateState(components_state)
 
         #rospy.wait_for_service('/' + name = '/getSubsystemInfo')
         if self.subsystem_info == None:
@@ -599,7 +613,7 @@ class SubsystemWidget(QWidget):
         mcd = self.parseMasterComponentDiag(self.state)
         if len(mcd[0]) > 0:
             self.SubsystemState.setText(mcd[0][0][0])
-            self.dialogHistory.updateState(mcd)
+            self.dialogBehaviorHistory.updateState(mcd)
             self.PeriodWall.setText(mcd[2] + ', ' + str(mcd[3]*1000.0) + 'ms, ' + str(mcd[4]*1000.0) + 'ms, ' + str(mcd[5]*1000.0) + 'ms, ' + str(mcd[6]*1000.0) + 'ms, ' + str(mcd[7]*1000.0) + 'ms')
         else:
             self.SubsystemState.setText("unknown")

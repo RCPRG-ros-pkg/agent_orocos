@@ -19,3 +19,4 @@ BehaviorInfo[] behaviors
 
 ConnectionInfo[] connections
 
+StateInfo[] state_machine
