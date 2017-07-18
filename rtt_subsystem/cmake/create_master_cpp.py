@@ -569,14 +569,12 @@ def generate_boost_serialization(package, port_def, output_cpp):
         s.write("};\n\n")
 
     s.write("common_behavior::PredicateList& PredicateList::operator=(const common_behavior::PredicateList& arg) {\n")
-    s.write("    const PredicateList* p = dynamic_cast<const PredicateList* >(&arg);\n")
+    s.write("    const PredicateList* p = static_cast<const PredicateList* >(&arg);\n")
     for pred in sd.predicates:
         s.write("    " + pred + " = p->" + pred + ";\n")
     s.write("    IN_ERROR = p->IN_ERROR;\n")
     s.write("    CURRENT_BEHAVIOR_OK = p->CURRENT_BEHAVIOR_OK;\n")
-#    for st in sd.states:
-#        s.write("    PREV_STATE_" + st.name + " = p->PREV_STATE_" + st.name + ";\n")
-    s.write("    return *dynamic_cast<common_behavior::PredicateList* >(this);\n")
+    s.write("    return *static_cast<common_behavior::PredicateList* >(this);\n")
     s.write("};\n\n")
 
 
