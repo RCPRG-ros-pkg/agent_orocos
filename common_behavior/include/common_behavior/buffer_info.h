@@ -47,33 +47,11 @@ public:
 class InputBufferInfo : public BufferInfo {
 public:
     InputBufferInfo(    const std::string& interface_type,
-                        const std::string& interface_alias,
-                        double event = false,
-                        double period_min = 0.0,
-                        double event_no_data = false,
-                        double first_timeout = 0.0,
-                        double next_timeout = 0.0,
-                        double first_timeout_sim = 0.0,
-                        const std::string& converter_name = std::string())
+                        const std::string& interface_alias)
 
         : BufferInfo(interface_type, interface_alias)
-        , event_(event)
-        , event_no_data_(event_no_data)
-        , period_min_(period_min)
-        , first_timeout_(first_timeout)
-        , next_timeout_(next_timeout)
-        , first_timeout_sim_(first_timeout_sim)
-        , converter_name_(converter_name)
     {
     }
-
-    bool event_;
-    bool event_no_data_;
-    double period_min_;
-    double first_timeout_;
-    double next_timeout_;
-    double first_timeout_sim_;
-    std::string converter_name_;
 };
 
 class OutputBufferInfo : public BufferInfo {
