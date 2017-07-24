@@ -63,26 +63,6 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("typedef boost::shared_ptr<InputData > InputDataPtr;\n\n")
     s.write("typedef boost::shared_ptr<const InputData > InputDataConstPtr;\n\n")
 
-    components_counter = 0
-    for rb in sd.trigger_methods.read_buffers:
-        s.write("// Data structure used in input buffers component.\n//It contains data from subsystem input buffers used in one atomic read.\n")
-        class_name = "InputData" + str(components_counter)
-        s.write("class " + class_name + " {\n")
-        s.write("public:\n")
-        all_buffers = rb.obligatory + rb.optional
-        for buf_name in all_buffers:
-            buf_in = None
-            for b in sd.buffers_in:
-                if b.alias == buf_name:
-                    buf_in = b
-                    break
-            if not buf_in:
-                raise Exception('buffer not found', 'buffer specified in trigger methods <read_data>: \'' + buf_name + '\' could not be found in defined buffers')
-            s.write("  " + buf_in.type_pkg + "::" + buf_in.type_name + " " + buf_in.alias + ";\n")
-            s.write("  bool " + buf_in.alias + "_valid;\n")
-        s.write("};\n\n")
-        components_counter = components_counter + 1
-
     #
     # class PredicateList
     #

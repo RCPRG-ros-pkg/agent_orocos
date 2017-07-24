@@ -37,12 +37,19 @@
 
 namespace common_behavior {
 
+class ConverterBase {
+public:
+    virtual ~ConverterBase() {}
+};
+
 template <typename Tfrom, typename Tto >
-class Converter {
+class Converter : public ConverterBase {
 public:
 
     typedef Tfrom TypeFrom;
     typedef Tto TypeTo;
+
+    virtual ~Converter() {}
 
     static bool isCompatible(RTT::base::PortInterface *from, RTT::base::PortInterface *to) {
         if (!from || !to) {
@@ -79,10 +86,6 @@ public:
         return true;
     }
 
-    void stopHook() {
-        port_out_.clear();
-    }
-
     void updateHook() {
         if (port_in_.read(in_, false) == RTT::NewData) {
             converter_->convert(in_, out_);
@@ -100,27 +103,49 @@ private:
     std::shared_ptr<C > converter_;
 };
 
+class ConverterPortsBase {
+public:
+    virtual ~ConverterPortsBase() {}
+
+    virtual void convert() = 0;
+};
+
 class PortConverterFactory
 {
 private:
     typedef bool (*isCompatibleFunction)(RTT::base::PortInterface *, RTT::base::PortInterface *);
 
-    std::vector<std::pair<isCompatibleFunction, std::string > > factoryFunctionRegistry_;
+    std::vector<std::string > factoryFunctionRegistryNames_;
+    std::vector<isCompatibleFunction > factoryFunctionRegistryIsCompatible_;
+    std::vector<function<ConverterBase*(void)> > factoryFunctionRegistryCreate_;
 
     PortConverterFactory() {}
 
 public:
-    void RegisterFactoryFunction(isCompatibleFunction fun, const std::string& name) {
-        factoryFunctionRegistry_.push_back( std::pair<isCompatibleFunction, std::string >(fun, name) );
+    void RegisterFactoryFunction(isCompatibleFunction fun, function<ConverterBase*(void)> classFactoryFunction, const std::string& name) {
+        factoryFunctionRegistryNames_.push_back(name);
+        factoryFunctionRegistryIsCompatible_.push_back(fun);
+        factoryFunctionRegistryCreate_.push_back(classFactoryFunction);
     }
 
     std::string getPortConverter(RTT::base::PortInterface *from, RTT::base::PortInterface *to) const {
-        for (int i = 0; i < factoryFunctionRegistry_.size(); ++i) {
-            if (factoryFunctionRegistry_[i].first(from, to)) {
-                return factoryFunctionRegistry_[i].second;
+        for (int i = 0; i < factoryFunctionRegistryIsCompatible_.size(); ++i) {
+            if (factoryFunctionRegistryIsCompatible_[i](from, to)) {
+                return factoryFunctionRegistryNames_[i];
             }
         }
+
         return std::string();
+    }
+
+    ConverterBase* createConverter(RTT::base::PortInterface *from, RTT::base::PortInterface *to) const {
+        for (int i = 0; i < factoryFunctionRegistryIsCompatible_.size(); ++i) {
+            if (factoryFunctionRegistryIsCompatible_[i](from, to)) {
+                return factoryFunctionRegistryCreate_[i]();
+            }
+        }
+        std::cout << "PortConverterFactory::createConverter: ERROR: converter not found" << std::endl;
+        return NULL;
     }
 
     static PortConverterFactory* Instance()
@@ -138,16 +163,92 @@ public:
         std::cout << "PortConverterRegistrar: " << name << std::endl;
 
         // register the class factory function 
-        PortConverterFactory::Instance()->RegisterFactoryFunction(&T::isCompatible, name);
+        PortConverterFactory::Instance()->RegisterFactoryFunction(&T::isCompatible, [](void) -> ConverterBase * { return new T();}, name);
     }
 };
 
+template <typename TYPE_FROM, typename TYPE_TO >
+class ConverterPorts : public ConverterPortsBase {
+public:
+
+    explicit ConverterPorts(const std::string &name)
+        : port_from_(name + "_INPORT")
+        , port_to_(name + "_OUTPORT")
+    {
+    }
+
+    bool initialize() {
+        RTT::OutputPort<TYPE_FROM > port_from;
+        RTT::InputPort<TYPE_TO > port_to;
+        converter_ = std::dynamic_pointer_cast<Converter<TYPE_FROM, TYPE_TO > >( std::shared_ptr<ConverterBase >(common_behavior::PortConverterFactory::Instance()->createConverter(&port_from, &port_to)));
+        return converter_ != NULL;
+    }
+
+    void convert() {
+        if (port_from_.read(data_in_) == RTT::NewData) {
+            converter_->convert(data_in_, data_out_);
+            port_to_.write(data_out_);
+        }
+    }
+
+    RTT::InputPort<TYPE_FROM > port_from_;
+    RTT::OutputPort<TYPE_TO > port_to_;
+
+private:
+    TYPE_FROM data_in_;
+    TYPE_TO data_out_;
+
+    std::shared_ptr<Converter<TYPE_FROM, TYPE_TO > > converter_;
+};
+
+class MultiConverterComponent: public RTT::TaskContext {
+public:
+    explicit MultiConverterComponent(const std::string &name)
+        : TaskContext(name, PreOperational)
+        , initialized_(true)
+    {
+    }
+
+    template <typename TYPE_FROM, typename TYPE_TO >
+    bool addConverter(const std::string &name) {
+        RTT::Logger::In in(std::string("MultiConverterComponent(") + getName() + ")::addConverter");
+
+        std::shared_ptr<ConverterPorts<TYPE_FROM, TYPE_TO> > pconv(new ConverterPorts<TYPE_FROM, TYPE_TO>(name));
+        if (!pconv->initialize()) {
+            RTT::Logger::log() << RTT::Logger::Error << "could not load ConverterPorts: '" << name << "'" << RTT::Logger::endl;
+            initialized_ = false;
+            return false;
+        }
+        this->ports()->addPort(pconv->port_from_);
+        this->ports()->addPort(pconv->port_to_);
+        converters_.push_back( std::dynamic_pointer_cast<ConverterPortsBase >(pconv) );
+
+        return true;
+    }
+
+private:
+
+    bool configureHook() {
+        return initialized_;
+    }
+
+    void updateHook() {
+        for (int i = 0; i < converters_.size(); ++i) {
+            converters_[i]->convert();
+        }
+    }
+
+    std::vector<std::shared_ptr<ConverterPortsBase > > converters_;
+    bool initialized_;
+};
+
+// component
 #define LITERAL_registrar_port_converter_(X) registrar_port_converter_##X
 #define EXPAND_registrar_port_converter_(X) LITERAL_registrar_port_converter_(X)
 
 #define LITERAL_port_converter_component_name__(X) Component##X
 #define EXPAND_port_converter_component_name_(X) LITERAL_port_converter_component_name__(X)
- 
+
 #define REGISTER_PORT_CONVERTER( CONVERTER_CLASS ) static common_behavior::PortConverterRegistrar<CONVERTER_CLASS > EXPAND_registrar_port_converter_(__LINE__)("Component"#CONVERTER_CLASS);\
  typedef common_behavior::ConverterComponent<CONVERTER_CLASS > EXPAND_port_converter_component_name_(CONVERTER_CLASS);\
  ORO_LIST_COMPONENT_TYPE(EXPAND_port_converter_component_name_(CONVERTER_CLASS));

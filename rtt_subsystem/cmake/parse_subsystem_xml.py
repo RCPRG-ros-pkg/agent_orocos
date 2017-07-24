@@ -67,6 +67,30 @@ class SubsystemState:
         for ns in xml.getElementsByTagName("next_state"):
             self.next_states.append( (ns.getAttribute("name"), ns.getAttribute("init_cond")) )
 
+        buffer_group = xml.getElementsByTagName("buffer_group")
+        if len(buffer_group) != 1:
+            raise Exception('<state>', 'exactly one <buffer_group> must be specified')
+
+        self.buffer_group_name = buffer_group[0].getAttribute("name")
+        if not self.buffer_group_name:
+            raise Exception('<state>', '<buffer_group> must have attribute \'name\'')
+
+        if not buffer_group[0].getAttribute("min_period"):
+            raise Exception('<state>', '<buffer_group> must have attribute \'min_period\'')
+        self.buffer_group_min_period = float(buffer_group[0].getAttribute("min_period"))
+
+        if not buffer_group[0].getAttribute("first_timeout"):
+            raise Exception('<state>', '<buffer_group> must have attribute \'first_timeout\'')
+        self.buffer_group_first_timeout = float(buffer_group[0].getAttribute("first_timeout"))
+
+        if not buffer_group[0].getAttribute("next_timeout"):
+            raise Exception('<state>', '<buffer_group> must have attribute \'next_timeout\'')
+        self.buffer_group_next_timeout = float(buffer_group[0].getAttribute("next_timeout"))
+
+        if not buffer_group[0].getAttribute("first_timeout_sim"):
+            raise Exception('<state>', '<buffer_group> must have attribute \'first_timeout_sim\'')
+        self.buffer_group_first_timeout_sim = float(buffer_group[0].getAttribute("first_timeout_sim"))
+
     def __init__(self, xml=None):
         if xml:
             self.parse(xml)
@@ -85,54 +109,14 @@ class SubsystemBehavior:
         if xml:
             self.parse(xml)
 
-class Trigger(object):
-    def __init__(self, trigger_type):
-        self.trigger_type = trigger_type
-
-class TriggerOnNewData(Trigger):
+class BufferGroup:
     def __init__(self, xml):
-        super(TriggerOnNewData, self).__init__("new_data_on_buffer")
         self.name = xml.getAttribute("name")
-        self.min = float(xml.getAttribute("min"))
-
-class TriggerOnNoData(Trigger):
-    def __init__(self, xml):
-        super(TriggerOnNoData, self).__init__("no_data_on_buffer")
-        self.name = xml.getAttribute("name")
-        self.first_timeout = float(xml.getAttribute("first_timeout"))
-        self.next_timeout = float(xml.getAttribute("next_timeout"))
-        self.first_timeout_sim = float(xml.getAttribute("first_timeout_sim"))
-
-class TriggerOnPeriod(Trigger):
-    def __init__(self, xml):
-        super(TriggerOnPeriod, self).__init__("period")
-        self.value = float(xml.getAttribute("value"))
-
-class TriggerOnInterval(Trigger):
-    def __init__(self, xml):
-        super(TriggerOnInterval, self).__init__("interval")
-        self.min = float(xml.getAttribute("min"))
-        self.first = float(xml.getAttribute("first"))
-        self.first_sim = float(xml.getAttribute("first_sim"))
-        self.next = float(xml.getAttribute("next"))
-#        obligatory_data = xml.getElementsByTagName('obligatory_data')
-#        self.obligatory_data = []
-#        for od in obligatory_data:
-#            self.obligatory_data.append( od.getAttribute("buffer_name") )
-
-class TriggerReadBuffers(Trigger):
-    def __init__(self, xml):
-        super(TriggerReadBuffers, self).__init__("read_data")
-        self.min_period = float(xml.getAttribute("min_period"))
-        self.first_timeout = float(xml.getAttribute("first_timeout"))
-        self.next_timeout = float(xml.getAttribute("next_timeout"))
-        self.first_timeout_sim = float(xml.getAttribute("first_timeout_sim"))
-
         obligatory = xml.getElementsByTagName('obligatory')
         optional = xml.getElementsByTagName('optional')
 
         if len(obligatory) == 0 and len(optional) == 0:
-            raise Exception('<read_buffers>', 'at least one of <obligatory>, <optional> should be specified')
+            raise Exception('<buffer_group>', 'at least one of <obligatory>, <optional> should be specified')
 
         self.obligatory = []
         for ob in obligatory:
@@ -148,79 +132,11 @@ class TriggerReadBuffers(Trigger):
                 raise Exception('<optional>', 'attribute \'name\' must be specified')
             self.optional.append(name)
 
-class TriggerMethods:
-    def parse(self, xml):
-        new_data_on_buffer = xml.getElementsByTagName('new_data_on_buffer')
-        no_data_on_buffer = xml.getElementsByTagName('no_data_on_buffer')
-        period = xml.getElementsByTagName('period')
-        interval = xml.getElementsByTagName('interval')
-        read_buffers = xml.getElementsByTagName('read_buffers')
-
-        if not (len(period) == 0 or len(period) == 1):
-            raise Exception('period', 'wrong number of <period> tags in <trigger_methods>, should be 0 or 1')
-
-        if not (len(interval) == 0 or len(interval) == 1):
-            raise Exception('interval', 'wrong number of <interval> tags in <trigger_methods>, should be 0 or 1')
-
-        if len(new_data_on_buffer) + len(no_data_on_buffer) + len(period) + len(interval) + len(read_buffers) == 0:
-            raise Exception('<trigger_methods>', 'at least one trigger method should be specified')
-
-        for m in new_data_on_buffer:
-            if not self.new_data:
-                self.new_data = []
-            self.new_data.append( TriggerOnNewData(m) )
-
-        for m in no_data_on_buffer:
-            if not self.no_data:
-                self.no_data = []
-            self.no_data.append( TriggerOnNoData(m) )
-
-        if len(period) == 1:
-            self.period = TriggerOnPeriod(period[0])
-
-        if len(interval) == 1:
-            self.interval = TriggerOnInterval(interval[0])
-
-        for r in read_buffers:
-            self.read_buffers.append( TriggerReadBuffers(r) )
-
-    def __init__(self, xml=None):
-        self.new_data = None
-        self.no_data = None
-        self.period = None
-        self.read_buffers = []
-        self.interval = None
-        if xml:
-            self.parse(xml)
-
-    def onNewData(self, alias=None):
-        if not self.new_data:
-            return None
-        if not alias:
-            return self.new_data
-        for t in self.new_data:
-            if t.name == alias:
-                return t
-        return None
-
-    def onNoData(self, alias=None):
-        if not self.no_data:
-            return None
-        if not alias:
-            return self.no_data
-        for t in self.no_data:
-            if t.name == alias:
-                return t
-        return None
-
-    def onPeriod(self):
-        return self.period
-
 class SubsystemDefinition:
     def __init__(self):
         self.buffers_in = []
         self.buffers_out = []
-        self.trigger_methods = None
+        self.buffer_groups = []
         self.predicates = []
         self.states = []
         self.initial_state_name = None
@@ -233,6 +149,14 @@ class SubsystemDefinition:
     def getInitialStateName(self):
         return self.initial_state_name
 
+    def getBufferGroupId(self, name):
+        index = 0
+        for buffer_group in self.buffer_groups:
+            if buffer_group.name == name:
+                return index
+            index = index + 1
+        raise Exception('<getBufferGroupId>', 'buffer group \'' + buffer_group.name + '\' not found')
+
     def parseBuffers(self, xml):
         # <in>
         for p_in in xml.getElementsByTagName('in'):
@@ -243,6 +167,12 @@ class SubsystemDefinition:
         for p_out in xml.getElementsByTagName('out'):
             p = OutputPort(p_out)
             self.buffers_out.append(p)
+
+    def parseBufferGroups(self, xml):
+        # <buffer_group>
+        for buffer_group in xml.getElementsByTagName('buffer_group'):
+            g = BufferGroup(buffer_group)
+            self.buffer_groups.append(g)
 
     def parsePredicates(self, xml):
         for p in xml.getElementsByTagName("predicate"):
@@ -263,9 +193,6 @@ class SubsystemDefinition:
             behavior = SubsystemBehavior(b)
             self.behaviors.append( behavior )
 
-    def parseTriggerMethods(self, xml):
-        self.trigger_methods = TriggerMethods(xml)
-
     def parse(self, xml):
         # <buffers>
         buffers = xml.getElementsByTagName("buffers")
@@ -273,12 +200,12 @@ class SubsystemDefinition:
             raise Exception('buffers', 'wrong number of <buffers> tags, should be 1')
         self.parseBuffers(buffers[0])
 
-        # <trigger>
-        trigger_methods = xml.getElementsByTagName("trigger_methods")
-        if len(trigger_methods) != 1:
-            raise Exception('trigger_methods', 'wrong number of <trigger_methods> tags, should be 1')
-        self.parseTriggerMethods(trigger_methods[0])
-            
+        # <buffer_groups>
+        buffer_groups = xml.getElementsByTagName("buffer_groups")
+        if len(buffer_groups) != 1:
+            raise Exception('buffer_groups', 'wrong number of <buffer_groups> tags, should be 1')
+        self.parseBufferGroups(buffer_groups[0])
+
         # <predicates>
         predicates = xml.getElementsByTagName("predicates")
         if len(predicates) != 1:
@@ -299,6 +226,32 @@ class SubsystemDefinition:
             raise Exception('states', 'wrong number of <states> tags, should be 1')
 
         self.parseStates(states[0])
+
+        # sanity checks
+        found_initial_state = False
+        for state in self.states:
+            if state.name == self.initial_state_name:
+                found_initial_state = True
+            found = False
+            for buffer_group in self.buffer_groups:
+                if buffer_group.name == state.buffer_group_name:
+                    found = True
+                    break
+            if not found:
+                raise Exception('state, buffer_group', 'state \'' + state.name + '\' has wrong buffer group: \'' + state.buffer_group_name + '\'')
+        if not found_initial_state:
+            raise Exception('initial_state', 'initial_state \'' + self.initial_state_name + '\' not found')
+
+        for buffer_group in self.buffer_groups:
+            all_buffers = buffer_group.obligatory + buffer_group.optional
+            for buf in all_buffers:
+                found = False
+                for buffer_in in self.buffers_in:
+                    if buffer_in.alias == buf:
+                        found = True
+                        break
+                if not found:
+                    raise Exception('buffer_group', 'buffer_group \'' + buffer_group.name + '\' contains non-existing buffer \'' + buf + '\'')
 
         #
         # <simulation>

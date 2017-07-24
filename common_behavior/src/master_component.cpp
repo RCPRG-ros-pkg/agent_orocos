@@ -186,6 +186,8 @@ public:
 
     bool configureHook();
 
+    void cleanupHook();
+
     bool startHook();
 
     void stopHook();
@@ -258,6 +260,10 @@ private:
     double interval5_;
 
     std::string thread_name_;
+
+    double read_buffer_timeout_;
+    bool use_sim_time_;
+    ros::Time time_last_s_;
 };
 
 void MasterComponent::setThreadName(const std::string& thread_name) {
@@ -269,6 +275,7 @@ MasterComponent::MasterComponent(const std::string &name)
     : TaskContext(name, PreOperational)
     , behavior_switch_history_length_(5)
     , scheme_time_(0)
+    , use_sim_time_(false)
 {
     this->addOperation("getDiag", &MasterComponent::getDiag, this, RTT::ClientThread);
 
@@ -277,6 +284,8 @@ MasterComponent::MasterComponent(const std::string &name)
     this->addOperation("setThreadName", &MasterComponent::setThreadName, this, RTT::ClientThread);
 
     addProperty("behavior_switch_history_length", behavior_switch_history_length_);
+
+    addProperty("use_sim_time", use_sim_time_);
 }
 
 std::string MasterComponent::getDiag() {
@@ -409,6 +418,11 @@ bool MasterComponent::configureHook() {
     master_service_ = this->getProvider<common_behavior::MasterServiceRequester >("master");
     if (!master_service_) {
         RTT::log(RTT::Error) << "Unable to load common_behavior::MasterService" << RTT::endlog();
+        return false;
+    }
+
+    if (!master_service_->configureBuffers()) {
+        Logger::log() << Logger::Error << "could not configure subsystem buffers" << Logger::endl;
         return false;
     }
 
@@ -812,6 +826,10 @@ bool MasterComponent::startHook() {
     return true;
 }
 
+void MasterComponent::cleanupHook() {
+    master_service_->cleanupBuffers();
+}
+
 void MasterComponent::stopHook() {
 }
 
@@ -860,15 +878,12 @@ void MasterComponent::updateHook() {
 
     ros::Time time1 = rtt_rosclock::rtt_wall_now();
 
-    master_service_->readBuffers();
-
     // Store update time
     last_update_time_ = now;
 
     // Compute statistics describing how often update is being called
     last_exec_period_ = time - last_exec_time_;
     last_exec_time_ = time;
-
 
     master_service_->initBuffersData(in_data_);
 
@@ -942,6 +957,12 @@ void MasterComponent::updateHook() {
     //
 
     if (behavior_switch) {
+        if (use_sim_time_) {
+            read_buffer_timeout_ = current_state_->getBufferGroupFirstTimeoutSim();
+        }
+        else {
+            read_buffer_timeout_ = current_state_->getBufferGroupFirstTimeout();
+        }
 
         int new_behavior_idx = state_graphs_[current_state_->getStateName()];
         if (!switchToConfiguration_(new_behavior_idx)) {
@@ -996,6 +1017,26 @@ void MasterComponent::updateHook() {
     if (interval5 > interval5_ || counter_%5000 == 0) {
         interval5_ = interval5;
     }
+
+    double timeout_s = current_state_->getBufferGroupMinPeriod() - (rtt_rosclock::rtt_wall_now() - time_last_s_).toSec();  // calculate sleep time
+    if (timeout_s > 0) {
+        usleep( static_cast<int >((timeout_s)*1000000.0) );
+    }
+    time_last_s_ = rtt_rosclock::rtt_wall_now();     // save time
+
+    if (master_service_->bufferGroupRead( current_state_->getBufferGroupId(), read_buffer_timeout_ )) {
+        if (use_sim_time_) {
+            read_buffer_timeout_ = current_state_->getBufferGroupFirstTimeoutSim();
+        }
+        else {
+            read_buffer_timeout_ = current_state_->getBufferGroupFirstTimeout();
+        }
+    }
+    else {
+        read_buffer_timeout_ = current_state_->getBufferGroupNextTimeout();
+    }
+
+    trigger();
 }
 
 ORO_LIST_COMPONENT_TYPE(MasterComponent)

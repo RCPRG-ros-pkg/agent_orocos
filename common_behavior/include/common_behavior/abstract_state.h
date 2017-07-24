@@ -55,17 +55,55 @@ public:
         return behavior_names_;
     }
 
+    const std::string& getBufferGroupName() const {
+        return buffer_group_name_;
+    }
+
+    size_t getBufferGroupId() const {
+        return buffer_group_id_;
+    }
+
+    double getBufferGroupMinPeriod() const {
+        return buffer_group_min_period_;
+    }
+
+    double getBufferGroupFirstTimeout() const {
+        return buffer_group_first_timeout_;
+    }
+
+    double getBufferGroupNextTimeout() const {
+        return buffer_group_next_timeout_;
+    }
+
+    double getBufferGroupFirstTimeoutSim() const {
+        return buffer_group_first_timeout_sim_;
+    }
+
 protected:
-    StateBase(const std::string& state_name, const std::string& short_state_name, const std::vector<std::string >& behavior_names)
+    StateBase(const std::string& state_name, const std::string& short_state_name, const std::vector<std::string >& behavior_names,
+                const std::string& buffer_group_name, size_t buffer_group_id, double buffer_group_min_period, double buffer_group_first_timeout,
+                double buffer_group_next_timeout, double buffer_group_first_timeout_sim)
         : state_name_(state_name)
         , short_state_name_(short_state_name)
         , behavior_names_(behavior_names)
+        , buffer_group_name_(buffer_group_name)
+        , buffer_group_id_(buffer_group_id)
+        , buffer_group_min_period_(buffer_group_min_period)
+        , buffer_group_first_timeout_(buffer_group_first_timeout)
+        , buffer_group_next_timeout_(buffer_group_next_timeout)
+        , buffer_group_first_timeout_sim_(buffer_group_first_timeout_sim)
     { }
 
 private:
     std::string state_name_;
     std::string short_state_name_;
     std::vector<std::string > behavior_names_;
+    std::string buffer_group_name_;
+    size_t buffer_group_id_;
+    double buffer_group_min_period_;
+    double buffer_group_first_timeout_;
+    double buffer_group_next_timeout_;
+    double buffer_group_first_timeout_sim_;
 };
 
 class StateFactory
