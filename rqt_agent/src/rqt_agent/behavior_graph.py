@@ -162,7 +162,7 @@ class BehaviorGraphDialog(QDialog):
         if not self.component_selected:
             return
 
-        for conn in self.parent.all_connections:
+        for conn in self.parent.all_component_connections:
             if (conn[0] == self.component_selected and conn[1] == self.selected_component_port_names[index]) or \
                 (conn[2] == self.component_selected and conn[3] == self.selected_component_port_names[index]):
                 for graph_name in self.edges:
@@ -220,7 +220,7 @@ class BehaviorGraphDialog(QDialog):
         self.setWindowFlags(Qt.Window)
 
         rp = rospkg.RosPack()
-        ui_file = os.path.join(rp.get_path('rqt_agent'), 'resource', 'GraphVis.ui')
+        ui_file = os.path.join(rp.get_path('rqt_agent'), 'resource', 'BehaviorVis.ui')
         loadUi(ui_file, self)
 
         self.setWindowTitle(subsystem_name + " - transition function")
@@ -381,7 +381,7 @@ class BehaviorGraphDialog(QDialog):
     def exportClick(self):
         if not self.initialized:
             return
-        self.parent.exportGraphs()
+        self.parent.exportBehaviorGraphs()
 
     @Slot()
     def reset_viewClick(self):
@@ -455,7 +455,7 @@ class StateMachineGraphDialog(QDialog):
         if not self.component_selected:
             return
 
-        for conn in self.parent.all_connections:
+        for conn in self.parent.all_component_connections:
             if (conn[0] == self.component_selected and conn[1] == self.selected_component_port_names[index]) or \
                 (conn[2] == self.component_selected and conn[3] == self.selected_component_port_names[index]):
                 for graph_name in self.edges:
@@ -513,7 +513,7 @@ class StateMachineGraphDialog(QDialog):
         self.setWindowFlags(Qt.Window)
 
         rp = rospkg.RosPack()
-        ui_file = os.path.join(rp.get_path('rqt_agent'), 'resource', 'GraphVis.ui')
+        ui_file = os.path.join(rp.get_path('rqt_agent'), 'resource', 'BehaviorVis.ui')
         loadUi(ui_file, self)
 
         self.setWindowTitle(subsystem_name + " - transition function")
