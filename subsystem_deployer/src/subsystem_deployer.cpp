@@ -297,7 +297,7 @@ void scanService(Service::shared_ptr sv)
             connections_[i].latex = d_.getConnectionNameLatex(
                     connections_[i].component_from + "." + connections_[i].port_from,
                     connections_[i].component_to + "." + connections_[i].port_to);
-            res.connections.push_back(connections_[i]);
+            res.component_connections.push_back(connections_[i]);
 //            Logger::log() << Logger::Info << "conn " << i << ": "
 //                << connections_[i].component_from << "." << connections_[i].port_from << " -> "
 //                << connections_[i].component_to << "." << connections_[i].port_to << ", name: " << connections_[i].name

@@ -17,5 +17,6 @@ ComponentInfo[] components
 
 BehaviorInfo[] behaviors
 
-ConnectionInfo[] connections
+ConnectionInfo[] component_connections
 
+StateInfo[] state_machine
