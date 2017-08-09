@@ -32,6 +32,15 @@
 
 namespace common_behavior {
 
+class BufferGroup {
+public:
+    double min_period;
+    double first_timeout;
+    double first_timeout_sim;
+    double next_timeout;
+    size_t id;
+};
+
 class InputData {
 public:
 

@@ -146,6 +146,22 @@ class SubsystemDefinition:
         self.trigger_gazebo = False
         self.use_sim_clock = False
 
+    def getBufferGroupId(self, name):
+        group_id = 0
+        for gr in self.buffer_groups:
+            if gr.name == name:
+                return group_id
+            group_id += 1
+        return None
+
+    def getStateId(self, state_name):
+        state_id = 0
+        for st in self.states:
+            if st.name == state_name:
+                return state_id
+            state_id += 1
+        return None
+
     def getInitialStateName(self):
         return self.initial_state_name
 

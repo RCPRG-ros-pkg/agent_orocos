@@ -44,15 +44,8 @@
 #include "common_behavior/input_data.h"
 #include "common_behavior/master_service_requester.h"
 #include "common_behavior/master_service.h"
-#include "common_behavior/abstract_state.h"
 
 using namespace RTT;
-
-typedef std::shared_ptr<common_behavior::BehaviorBase > BehaviorBasePtr;
-typedef std::shared_ptr<const common_behavior::BehaviorBase > BehaviorBaseConstPtr;
-
-typedef std::shared_ptr<common_behavior::StateBase > StateBasePtr;
-typedef std::shared_ptr<const common_behavior::StateBase > StateBaseConstPtr;
 
 class DiagBehaviorSwitch {
 public:
@@ -129,57 +122,7 @@ private:
     std::vector<DiagBehaviorSwitch> h_;
     int idx_;
 };
-/*
-bool componentsInConflict(const std::string& c1, const std::string& c2, const std::set<std::pair<std::string, std::string > >& conflicting_components) {
-    std::pair<std::string, std::string > p1(c1, c2);
-    std::pair<std::string, std::string > p2(c2, c1);
-    if (conflicting_components.find(p1) == conflicting_components.end() &&
-        conflicting_components.find(p2) == conflicting_components.end()) {
-        return false;
-    }
-    return true;
-}
 
-bool behaviorsInConflict(const BehaviorBaseConstPtr &b1, const BehaviorBaseConstPtr &b2, const std::set<std::pair<std::string, std::string > >& conflicting_components) {
-    const std::vector<std::string >& b1_comp_vec = b1->getRunningComponents();
-    const std::vector<std::string >& b2_comp_vec = b2->getRunningComponents();
-    for (int i = 0; i < b1_comp_vec.size(); ++i) {
-        for (int j = 0; j < b2_comp_vec.size(); ++j) {
-            if (componentsInConflict(b1_comp_vec[i], b2_comp_vec[j], conflicting_components)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-*/
-/*
-void recursiveAddBehavior(const std::vector<BehaviorBasePtr >& behaviors, int start_idx,
-                            std::vector<std::vector<int> >& out, std::vector<int > bv = std::vector<int >()) {
-//    if (os->isComplete()) {
-//        out.push_back(bv);
-//        return;
-//    }
-
-//TODO:
-    for (int i = start_idx; i < behaviors.size(); ++i) {
-        bool compatible = true;
-        for (int j = 0; j < bv.size(); ++j) {
-            if (behaviorsInConflict(behaviors[i], behaviors[bv[j]], conflicting_components)) {
-                compatible = false;
-                break;
-            }
-        }
-        if ( compatible ) {
-//            os->add(behaviors[i]->getOutputScope());
-            bv.push_back(i);
-            recursiveAddBehavior(behaviors, i+1, os, out, bv);
-            bv.pop_back();
-//            os->substract(behaviors[i]->getOutputScope());
-        }
-    }
-}
-*/
 class MasterComponent: public RTT::TaskContext {
 public:
     explicit MasterComponent(const std::string &name);
@@ -201,10 +144,6 @@ public:
     void setThreadName(const std::string& thread_name);
 
 private:
-    BehaviorBasePtr getBehavior(const std::string& name) const;
-    StateBasePtr getState(const std::string& name) const;
-    bool addBehavior(const BehaviorBasePtr& ptr);
-    bool removeBehavior(const BehaviorBasePtr& ptr);
     void calculateConflictingComponents();
     void printCurrentBehaviors() const;
     bool isCurrentBehavior(const std::string& behavior_name) const;
@@ -212,12 +151,8 @@ private:
     int currentBehaviorsCount() const;
     bool isGraphOk() const;
 
-    std::vector<StateBasePtr > states_;
-    StateBasePtr current_state_;
-    std::map<std::string, std::vector<BehaviorBasePtr > > state_behaviors_;
+    int current_state_id_;
     std::map<std::string, int > state_graphs_;
-
-    std::vector<BehaviorBasePtr > behaviors_;
 
     // pointer to conman scheme TaskContext
     TaskContext *scheme_;
@@ -312,7 +247,7 @@ std::string MasterComponent::getDiag() {
 
         std::string behavior_name;
         if (s.id_ >= 0) {
-            behavior_name = states_[s.id_]->getShortStateName();
+            behavior_name = master_service_->getStateName(s.id_);
         }
         else {
             behavior_name = "INV_BEH";
@@ -394,24 +329,6 @@ void MasterComponent::calculateConflictingComponents() {
     }
 }
 
-BehaviorBasePtr MasterComponent::getBehavior(const std::string& name) const {
-    for (int i = 0; i < behaviors_.size(); ++i) {
-        if (behaviors_[i]->getName() == name) {
-            return behaviors_[i];
-        }
-    }
-    return BehaviorBasePtr();
-}
-
-StateBasePtr MasterComponent::getState(const std::string& name) const {
-    for (int i = 0; i < states_.size(); ++i) {
-        if (states_[i]->getStateName() == name) {
-            return states_[i];
-        }
-    }
-    return StateBasePtr();
-}
-
 bool MasterComponent::configureHook() {
     Logger::In in("MasterComponent::configureHook");
 
@@ -432,66 +349,16 @@ bool MasterComponent::configureHook() {
         return false;
     }
 
-    //
-    // retrieve states list
-    //
-    std::vector<std::string > state_names_ = master_service_->getStates();
-
-    Logger::log() << Logger::Info << "Used states:" << Logger::endl;
-    for (int i = 0; i < state_names_.size(); ++i) {
-        auto s_ptr = common_behavior::StateFactory::Instance()->Create( state_names_[i] );
-        if (s_ptr) {
-            Logger::log() << Logger::Info << "    " << state_names_[i] << ", short name: " << s_ptr->getShortStateName() << Logger::endl;
-            states_.push_back(s_ptr);
-        }
-        else {
-            Logger::log() << Logger::Error << "unknown state: " << state_names_[i] << Logger::endl;
-            return false;
-        }
-    }
-
-    //
-    // retrieve behaviors list
-    //
-    std::vector<std::string > behavior_names_ = master_service_->getBehaviors();
-
-    Logger::log() << Logger::Info << "Known behaviors: " << Logger::endl;
-    for (auto it = common_behavior::BehaviorFactory::Instance()->getBehaviors().begin();
-        it != common_behavior::BehaviorFactory::Instance()->getBehaviors().end(); ++it)
-    {
-        Logger::log() << Logger::Info << "    " << it->first << Logger::endl;
-    }
-
-    Logger::log() << Logger::Info << "Used behaviors:" << Logger::endl;
-    for (int i = 0; i < behavior_names_.size(); ++i) {
-        auto b_ptr = common_behavior::BehaviorFactory::Instance()->Create( behavior_names_[i] );
-        if (b_ptr) {
-            Logger::log() << Logger::Info << "    " << behavior_names_[i] << ", short name: " << b_ptr->getShortName() << Logger::endl;
-            behaviors_.push_back(b_ptr);
-        }
-        else {
-            Logger::log() << Logger::Error << "unknown behavior: " << behavior_names_[i] << Logger::endl;
-            return false;
-        }
-    }
-
     Logger::log() << Logger::Info << "initial state: " << master_service_->getInitialState() << Logger::endl;
 
-    // create map of behaviors used in each state
-    for (int i = 0; i < states_.size(); ++i) {
-        if (states_[i]->getStateName() == master_service_->getInitialState()) {
-            current_state_ = states_[i];
+    current_state_id_ = -1;
+    for (int i = 0; i < master_service_->getStatesCount(); ++i) {
+        if (master_service_->getStateName(i) == master_service_->getInitialState()) {
+            current_state_id_ = i;
         }
-        const std::vector<std::string>& behavior_names = states_[i]->getBehaviorNames();
-        std::vector<BehaviorBasePtr > state_behaviors;
-        for (int j = 0; j < behavior_names.size(); ++j) {
-            state_behaviors.push_back( getBehavior(behavior_names[j]) );
-        }
-
-        state_behaviors_[states_[i]->getStateName()] = state_behaviors;
     }
 
-    if (!current_state_) {
+    if (!current_state_id_ < 0) {
         Logger::log() << Logger::Error << "could not select initial state: " << master_service_->getInitialState() << Logger::endl;
         return false;
     }
@@ -502,25 +369,7 @@ bool MasterComponent::configureHook() {
         scheme_peers_.push_back( scheme_->getPeer(scheme_peers_names[pi]) );
         scheme_peers_const_.push_back( scheme_->getPeer(scheme_peers_names[pi]) );
     }
-/*
-    // prepare list of conflicting components
-    calculateConflictingComponents();
 
-    // calculate list of all possible complete behaviors
-    common_behavior::OutputScopeBasePtr os = master_service_->allocateOutputScope();
-//TODO: uncomment
-//    recursiveAddBehavior(behaviors_, 0, os, possible_behaviors_);
-    Logger::log() << Logger::Info << "possible complete behaviors: " << Logger::endl;
-    for (int i = 0; i < possible_behaviors_.size(); ++i) {
-        std::string str;
-        std::string sep = "";
-        for (int j = 0; j < possible_behaviors_[i].size(); ++j) {
-            str += sep + behaviors_[possible_behaviors_[i][j]]->getName();
-            sep = ", ";
-        }
-        Logger::log() << Logger::Info << "    " << str << Logger::endl;
-    }
-*/
     diag_ss_rt_.setSize(behavior_switch_history_length_, &common_behavior::MasterServiceRequester::allocatePredicateList, *master_service_);
 
     diag_bs_sync_.data_sample(diag_ss_rt_);
@@ -537,8 +386,8 @@ bool MasterComponent::configureHook() {
 
 
     // get names of all components that are needed for all behaviors
-    for (int i = 0; i < behaviors_.size(); ++i) {
-        const std::vector<std::string >& comp_vec = behaviors_[i]->getRunningComponents();
+    for (int i = 0; i < master_service_->getStatesCount(); ++i) {
+        const std::vector<std::string >& comp_vec = master_service_->getRunningComponentsInState(i);
         for (int j = 0; j < comp_vec.size(); ++j) {
             if (hasBlock_( comp_vec[j] )) {
                 switchable_components_.insert( comp_vec[j] );
@@ -549,138 +398,6 @@ bool MasterComponent::configureHook() {
             }
         }
     }
-
-    std::vector<std::string > all_converter_components;
-    std::vector<std::string > always_running_converter_components;
-
-    std::map<std::string, std::pair<std::string, std::string > > map_converters_components;
-
-    // get all converter components
-    for (int i = 0; i < scheme_peers_.size(); ++i) {
-        RTT::OperationInterfacePart *isDataConverterOp = scheme_peers_[i]->getOperation("isDataConverter");
-        if (!isDataConverterOp) {
-            continue;
-        }
-        RTT::OperationCaller<bool()> isDataConverter = RTT::OperationCaller<bool()>(isDataConverterOp);
-        if (isDataConverter()) {
-            const std::string& converter_name = scheme_peers_[i]->getName();
-            all_converter_components.push_back(converter_name);
-            Logger::log() << Logger::Info << "Found data converter component: " << converter_name << Logger::endl;
-
-            std::string comp_in;
-            std::string comp_out;
-
-            std::list<internal::ConnectionManager::ChannelDescriptor> chns = scheme_peers_[i]->getPort("data_INPORT")->getManager()->getConnections();
-            if (chns.empty()) {
-                Logger::log() << Logger::Error << "converter component is not connected (could not get channels): " << converter_name << Logger::endl;
-                return false;
-            }
-            for (std::list<internal::ConnectionManager::ChannelDescriptor>::iterator k = chns.begin(); k != chns.end(); k++){
-                base::ChannelElementBase::shared_ptr bs = k->get<1>();
-                if (bs->getInputEndPoint()->getPort() != 0){
-                    if (bs->getInputEndPoint()->getPort()->getInterface() != 0 ){
-                        comp_in = bs->getInputEndPoint()->getPort()->getInterface()->getOwner()->getName();
-                        break;
-/*                        std::map<std::string, std::vector<std::string > >::iterator m_it = map_components_converters.find(comp_in);
-                        if (m_it != map_components_converters.end()) {
-                            m_it->second.push_back( converter_name );
-
-                        }
-                        else {
-                            std::vector<std::string > vec;
-                            vec.push_back( converter_name );
-                            map_components_converters.insert( std::make_pair(comp_in, vec) );
-                        }
-                        if (switchable_components_.find(comp_in) == switchable_components_.end()) {
-                            always_running_converter_components.push_back(converter_name);
-                        }
-*/
-                    }
-                    else{
-                        Logger::log() << Logger::Error << "converter component is not connected (could not get interface): " << converter_name << Logger::endl;
-                        return false;
-                    }
-                }
-                else {
-                    Logger::log() << Logger::Error << "converter component is not connected (could not get port): " << converter_name << Logger::endl;
-                    return false;
-                }
-            }
-
-            chns = scheme_peers_[i]->getPort("data_OUTPORT")->getManager()->getConnections();
-            if (chns.empty()) {
-                Logger::log() << Logger::Error << "converter component is not connected (could not get channels): " << converter_name << Logger::endl;
-                return false;
-            }
-            for (std::list<internal::ConnectionManager::ChannelDescriptor>::iterator k = chns.begin(); k != chns.end(); k++){
-                base::ChannelElementBase::shared_ptr bs = k->get<1>();
-                if (bs->getOutputEndPoint()->getPort() != 0){
-                    if (bs->getOutputEndPoint()->getPort()->getInterface() != 0 ){
-                        comp_out = bs->getOutputEndPoint()->getPort()->getInterface()->getOwner()->getName();
-                        break;
-/*                        std::map<std::string, std::vector<std::string > >::iterator m_it = map_components_converters.find(comp_out);
-                        if (m_it != map_components_converters.end()) {
-                            m_it->second.push_back( converter_name );
-
-                        }
-                        else {
-                            std::vector<std::string > vec;
-                            vec.push_back( converter_name );
-                            map_components_converters.insert( std::make_pair(comp_out, vec) );
-                        }
-                        if (switchable_components_.find(comp_out) == switchable_components_.end()) {
-                            always_running_converter_components.push_back(converter_name);
-                        }
-*/
-                    }
-                    else{
-                        Logger::log() << Logger::Error << "converter component is not connected (could not get interface): " << converter_name << Logger::endl;
-                        return false;
-                    }
-                }
-                else {
-                    Logger::log() << Logger::Error << "converter component is not connected (could not get port): " << converter_name << Logger::endl;
-                    return false;
-                }
-            }
-
-            Logger::log() << Logger::Error << "converter '" << converter_name << "' connects components '" << comp_in << "' and '" << comp_out << "'" << Logger::endl;
-            map_converters_components.insert( std::make_pair(converter_name, std::make_pair(comp_in, comp_out)) );
-
-            if (switchable_components_.find(comp_in) == switchable_components_.end() && switchable_components_.find(comp_out) == switchable_components_.end()) {
-                always_running_converter_components.push_back(converter_name);
-            }
-        }
-    }
-
-    for (int i = 0; i < all_converter_components.size(); ++i) {
-        if (hasBlock_( all_converter_components[i] )) {
-            switchable_components_.insert( all_converter_components[i] );
-        }
-        else {
-            Logger::log() << Logger::Error << "could not find a component \'" << all_converter_components[i] << "\' in the scheme blocks list" << Logger::endl;
-            return false;
-        }
-    }
-
-/*
-    std::string switchable_converter_components_str;
-    for (int i = 0; i < switchable_converter_components.size(); ++i) {
-        if (hasBlock_( switchable_converter_components[i] )) {
-            switchable_components_.insert( switchable_converter_components[i] );
-            switchable_converter_components_str = switchable_converter_components_str + "'" + switchable_converter_components[i] + "', ";
-        }
-    }
-
-    Logger::log() << Logger::Error << "switchable converter components: " << switchable_converter_components_str << Logger::endl;
-
-    std::string always_running_converter_components_str;
-    for (int i = 0; i < always_running_converter_components.size(); ++i) {
-        switchable_components_.insert( always_running_converter_components[i] );
-        always_running_converter_components_str = always_running_converter_components_str + "'" + always_running_converter_components[i] + "', ";
-    }
-    Logger::log() << Logger::Error << "always running converter components: " << always_running_converter_components_str << Logger::endl;
-//*/
 
     std::string switchable_components_str;
     for (std::set<std::string >::const_iterator it = switchable_components_.begin(); it != switchable_components_.end(); ++it) {
@@ -714,59 +431,10 @@ bool MasterComponent::configureHook() {
 
     switchToConfiguration_ = RTT::OperationCaller<bool(int)>(
         switchToConfigurationOp, scheme_->engine());
-/*
-    for (std::map<std::string, std::vector<std::string > >::const_iterator it = map_components_converters.begin(); it != map_components_converters.end(); ++it) {
-        std::string converters;
-        for (int i = 0; i < it->second.size(); ++i) {
-            converters = converters + "'" + it->second[i] + "', ";
-        }
-        Logger::log() << Logger::Info << "component '" << it->first << "' outputs are connected to converters: " << converters << Logger::endl;
-        
-    }
-//*/
     Logger::log() << Logger::Info << "conman graph configurations:" << Logger::endl;
-    for (int i = 0; i < states_.size(); ++i) {
-        const std::vector<BehaviorBasePtr >& state_behaviors = state_behaviors_[states_[i]->getStateName()];
-        std::vector<std::string > vec_running;
-        for (int j = 0; j < state_behaviors.size(); ++j) {
-            const std::vector<std::string >& const_v = state_behaviors[j]->getRunningComponents();
-            std::vector<std::string > v = state_behaviors[j]->getRunningComponents();
 
-            for (std::map<std::string, std::pair<std::string, std::string > >::iterator it = map_converters_components.begin(); it != map_converters_components.end(); ++it) {
-                const std::string& comp_in = it->second.first;
-                const std::string& comp_out = it->second.second;
-                bool running_in = (std::find(const_v.begin(), const_v.end(), comp_in) != const_v.end());
-                bool running_out = (std::find(const_v.begin(), const_v.end(), comp_out) != const_v.end());
-                bool always_in = (std::find(always_running_converter_components.begin(), always_running_converter_components.end(), comp_in) != always_running_converter_components.end());
-                bool always_out = (std::find(always_running_converter_components.begin(), always_running_converter_components.end(), comp_out) != always_running_converter_components.end());
-//                if ((running_in && running_out) || (running_in && always_out) || (always_in && running_out)) {
-                if (running_in || always_in || running_out || always_out) {
-                    v.push_back(it->first);
-                }
-            }
-
-//            for (int k = 0; k < const_v.size(); ++k) {
-//                std::map<std::string, std::vector<std::string > >::iterator m_it = map_components_converters.find(const_v[k]);
-//                if (m_it != map_components_converters.end()) {
-//                    v.insert(v.end(), m_it->second.begin(), m_it->second.end());
-//                }
-//            }
-
-            v.insert(v.end(), always_running_converter_components.begin(), always_running_converter_components.end());
-            v.insert(v.end(), all_converter_components.begin(), all_converter_components.end());
-
-            for (int k = 0; k < v.size(); ++k) {
-                if (std::find(vec_running.begin(), vec_running.end(), v[k]) == vec_running.end()) {
-                    if (hasBlock_( v[k] )) {
-                        vec_running.push_back(v[k]);
-                    }
-                    else {
-                        Logger::log() << Logger::Error << "conman scheme has no block: " << v[k] << Logger::endl;
-                        return false;
-                    }
-                }
-            }
-        }
+    for (int i = 0; i < master_service_->getStatesCount(); ++i) {
+        const std::vector<std::string >& vec_running = master_service_->getRunningComponentsInState(i);
 
         std::set<std::string > comp_beh_set = std::set<std::string >(vec_running.begin(), vec_running.end());
         std::vector<bool > comp_beh_vec;
@@ -803,10 +471,9 @@ bool MasterComponent::configureHook() {
             str_running += vec_running[j] + ", ";
         }
 
-        Logger::log() << Logger::Info << i << " '" << states_[i]->getStateName() << "':  s:[" << str_stopped << "], r:[" << str_running << "]" << Logger::endl;
+//        Logger::log() << Logger::Info << i << " '" << states_[i]->getStateName() << "':  s:[" << str_stopped << "], r:[" << str_running << "]" << Logger::endl;
 
         addGraphConfiguration_(i, vec_stopped, vec_running);
-        state_graphs_[states_[i]->getStateName()] = i;
     }
 
     in_data_ = master_service_->getDataSample();
@@ -835,7 +502,7 @@ void MasterComponent::stopHook() {
 
 bool MasterComponent::isGraphOk() const {
 
-    int current_graph_id = state_graphs_.find(current_state_->getStateName())->second;
+    int current_graph_id = current_state_id_;
     const std::vector<bool >& beh_running_vec = is_running_in_behavior_[current_graph_id];
 
     for (int i = 0; i < scheme_peers_const_.size(); ++i) {
@@ -899,7 +566,7 @@ void MasterComponent::updateHook() {
         first_step_ = false;
         behavior_switch = true;
 
-        diag_ss_rt_.addBehaviorSwitch(state_graphs_[current_state_->getStateName()], now, DiagBehaviorSwitch::INIT);
+        diag_ss_rt_.addBehaviorSwitch(current_state_id_, now, DiagBehaviorSwitch::INIT);
         diag_bs_sync_.Set(diag_ss_rt_);
     }
     else {
@@ -910,42 +577,27 @@ void MasterComponent::updateHook() {
     master_service_->calculatePredicates(in_data_, scheme_peers_const_, predicate_list_);
     predicate_list_->CURRENT_BEHAVIOR_OK = graphOk;
 
-    const std::vector<BehaviorBasePtr >& current_behaviors = state_behaviors_[current_state_->getStateName()];
-    bool err_cond = false;
-    for (int i = 0; i < current_behaviors.size(); ++i) {
-        if (current_behaviors[i]->checkErrorCondition(predicate_list_)) {
-            err_cond = true;
-            break;
-        }
-    }
-
+    bool err_cond = master_service_->checkErrorCondition(current_state_id_, predicate_list_);
     bool stop_cond = false;
 
     if (!err_cond) {
-        for (int i = 0; i < current_behaviors.size(); ++i) {
-            if (current_behaviors[i]->checkStopCondition(predicate_list_)) {
-                stop_cond = true;
-                break;
-            }
-        }
+        stop_cond = master_service_->checkStopCondition(current_state_id_, predicate_list_);
     }
 
     predicate_list_->IN_ERROR = err_cond;
     ros::Time time2 = rtt_rosclock::rtt_wall_now();
 
     if (stop_cond || err_cond) {
-        const std::string& next_state_name = current_state_->getNextState(predicate_list_);
-//        Logger::log() << Logger::Info << "switching to new state: " << next_state_name
-//            << Logger::endl;
-        current_state_ = getState(next_state_name);
-        if (!current_state_) {
-            Logger::log() << Logger::Error << "could not switch to new state: " << next_state_name << Logger::endl;
-            diag_ss_rt_.addBehaviorSwitch(state_graphs_[current_state_->getStateName()], now, (err_cond?DiagBehaviorSwitch::ERROR:DiagBehaviorSwitch::STOP), predicate_list_);
+        current_state_id_ = master_service_->getNextState(current_state_id_, predicate_list_);
+        if (current_state_id_ < 0) {
+            Logger::log() << Logger::Error << "could not switch to new state: " << current_state_id_ << Logger::endl;
+            diag_ss_rt_.addBehaviorSwitch(current_state_id_, now, (err_cond?DiagBehaviorSwitch::ERROR:DiagBehaviorSwitch::STOP), predicate_list_);
             diag_bs_sync_.Set(diag_ss_rt_);
             error();
             return;
         }
-        diag_ss_rt_.addBehaviorSwitch(state_graphs_[current_state_->getStateName()], now, (err_cond?DiagBehaviorSwitch::ERROR:DiagBehaviorSwitch::STOP), predicate_list_);
+
+        diag_ss_rt_.addBehaviorSwitch(current_state_id_, now, (err_cond?DiagBehaviorSwitch::ERROR:DiagBehaviorSwitch::STOP), predicate_list_);
         diag_bs_sync_.Set(diag_ss_rt_);
 
         behavior_switch = true;
@@ -958,14 +610,13 @@ void MasterComponent::updateHook() {
 
     if (behavior_switch) {
         if (use_sim_time_) {
-            read_buffer_timeout_ = current_state_->getBufferGroupFirstTimeoutSim();
+            read_buffer_timeout_ = master_service_->getStateBufferGroup(current_state_id_).first_timeout_sim;
         }
         else {
-            read_buffer_timeout_ = current_state_->getBufferGroupFirstTimeout();
+            read_buffer_timeout_ = master_service_->getStateBufferGroup(current_state_id_).first_timeout;
         }
 
-        int new_behavior_idx = state_graphs_[current_state_->getStateName()];
-        if (!switchToConfiguration_(new_behavior_idx)) {
+        if (!switchToConfiguration_(current_state_id_)) {
             Logger::log() << Logger::Error << "could not switch graph configuration" << Logger::endl;
             error();
             return;
@@ -1018,22 +669,22 @@ void MasterComponent::updateHook() {
         interval5_ = interval5;
     }
 
-    double timeout_s = current_state_->getBufferGroupMinPeriod() - (rtt_rosclock::rtt_wall_now() - time_last_s_).toSec();  // calculate sleep time
+    double timeout_s = master_service_->getStateBufferGroup(current_state_id_).min_period - (rtt_rosclock::rtt_wall_now() - time_last_s_).toSec();  // calculate sleep time
     if (timeout_s > 0) {
         usleep( static_cast<int >((timeout_s)*1000000.0) );
     }
     time_last_s_ = rtt_rosclock::rtt_wall_now();     // save time
 
-    if (master_service_->bufferGroupRead( current_state_->getBufferGroupId(), read_buffer_timeout_ )) {
+    if (master_service_->bufferGroupRead( master_service_->getStateBufferGroup(current_state_id_).id, read_buffer_timeout_ )) {
         if (use_sim_time_) {
-            read_buffer_timeout_ = current_state_->getBufferGroupFirstTimeoutSim();
+            read_buffer_timeout_ = master_service_->getStateBufferGroup(current_state_id_).first_timeout_sim;
         }
         else {
-            read_buffer_timeout_ = current_state_->getBufferGroupFirstTimeout();
+            read_buffer_timeout_ = master_service_->getStateBufferGroup(current_state_id_).first_timeout;
         }
     }
     else {
-        read_buffer_timeout_ = current_state_->getBufferGroupNextTimeout();
+        read_buffer_timeout_ = master_service_->getStateBufferGroup(current_state_id_).next_timeout;
     }
 
     trigger();

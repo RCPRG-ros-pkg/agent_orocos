@@ -81,10 +81,6 @@ public:
         factoryFunctionRegistry[name] = classFactoryFunction;
     }
 
-//    const map<string, function<BufferConverter*(void)> >& getStates() const {
-//        return factoryFunctionRegistry;
-//    }
-
     static BufferConverterFactory<Tmsg >* Instance()
     {
         static BufferConverterFactory<Tmsg > factory;
@@ -107,8 +103,6 @@ public:
 #define EXPAND_registrar_buffer_converter_(X) LITERAL_registrar_buffer_converter_(X)
 
 #define REGISTER_BUFFER_CONVERTER( BUFFER_CONVERTER_CLASS ) static common_interfaces::BufferConverterRegistrar<BUFFER_CONVERTER_CLASS > EXPAND_registrar_buffer_converter_(__LINE__)(#BUFFER_CONVERTER_CLASS)
-
-//#define REGISTER_BUFFER_CONVERTER( BUFFER_CONVERTER_CLASS ) static common_interfaces::BufferConverterRegistrar<BUFFER_CONVERTER_CLASS > registrar_buffer_converter
 
 };  // namespace common_interfaces
 

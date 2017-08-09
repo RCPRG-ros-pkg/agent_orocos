@@ -38,7 +38,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("#define " + header_name + "\n\n")
 
     s.write("#include \"common_behavior/input_data.h\"\n")
-    s.write("#include \"common_behavior/abstract_behavior.h\"\n")
+    s.write("#include <rtt/RTT.hpp>\n")
     s.write("#include \"common_behavior/abstract_predicate_list.h\"\n\n")
 
 
@@ -71,8 +71,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("public:\n")
     for pred in sd.predicates:
         s.write("  bool " + pred + ";\n")
-#    for st in sd.states:
-#        s.write("  bool PREV_STATE_" + st.name + ";\n")
+
     s.write("\n  virtual common_behavior::PredicateList& operator=(const common_behavior::PredicateList& arg);\n")
 
     s.write("};\n\n")

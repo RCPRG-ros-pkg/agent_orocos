@@ -304,6 +304,8 @@ void scanService(Service::shared_ptr sv)
 //                << Logger::endl;
         }
 
+/*
+// TODO
         std::vector<std::string > b_names = master_service->getBehaviors();
         for (int i = 0; i < b_names.size(); ++i) {
             auto b_ptr = common_behavior::BehaviorFactory::Instance()->Create( b_names[i] );
@@ -320,7 +322,7 @@ void scanService(Service::shared_ptr sv)
 //                << bi.name
 //                << Logger::endl;
         }
-
+*/
 		res.is_initialized = d_.isInitialized();
 
         return true;
@@ -1428,9 +1430,9 @@ bool SubsystemDeployer::configure(int rt_prio) {
         }
     }
 
-//    for (int i = 0; i < converter_components_.size(); ++i) {
-//        converter_components_[i]->start();
-//    }
+    for (int i = 0; i < converter_components_.size(); ++i) {
+        converter_components_[i]->start();
+    }
 
     if (!master_component_->trigger()) {
         RTT::log(RTT::Error) << "Unable to trigger component " << master_component_->getName() << RTT::endlog();
