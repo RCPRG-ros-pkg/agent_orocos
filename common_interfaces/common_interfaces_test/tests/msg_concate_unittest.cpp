@@ -225,7 +225,7 @@ TEST(MessageConcateTest, AllValid) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("concate", "common_interfaces_test_msgs_ContainerConcate"));
   RTT::TaskContext *concate = d.getDc()->getPeer("concate");
   EXPECT_TRUE(concate != NULL);
@@ -336,7 +336,7 @@ TEST(MessageConcateTest, InvalidCaughtOnTheSameLevel) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("concate", "common_interfaces_test_msgs_ContainerConcate"));
   RTT::TaskContext *concate = d.getDc()->getPeer("concate");
   EXPECT_TRUE(concate != NULL);
@@ -448,7 +448,7 @@ TEST(MessageConcateTest, InvalidCaughtOnHigherLevel) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("concate", "common_interfaces_test_msgs_ContainerConcate"));
   RTT::TaskContext *concate = d.getDc()->getPeer("concate");
   EXPECT_TRUE(concate != NULL);
@@ -561,7 +561,7 @@ TEST(MessageConcateTest, InvalidCaughtOnHighestLevel) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("concate", "common_interfaces_test_msgs_ContainerConcate"));
   RTT::TaskContext *concate = d.getDc()->getPeer("concate");
   EXPECT_TRUE(concate != NULL);
@@ -672,7 +672,7 @@ TEST(MessageConcateTest, InvalidCaughtOnMiddleLevel) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("concate", "common_interfaces_test_msgs_ContainerConcate"));
   RTT::TaskContext *concate = d.getDc()->getPeer("concate");
   EXPECT_TRUE(concate != NULL);

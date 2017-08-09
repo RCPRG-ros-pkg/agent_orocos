@@ -241,7 +241,7 @@ TEST(MessageSplitTest, AllValid) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("split", "common_interfaces_test_msgs_ContainerSplit"));
   RTT::TaskContext *split = d.getDc()->getPeer("split");
   EXPECT_TRUE(split != NULL);
@@ -351,7 +351,7 @@ TEST(MessageSplitTest, AllValidExceptLowest) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("split", "common_interfaces_test_msgs_ContainerSplit"));
   RTT::TaskContext *split = d.getDc()->getPeer("split");
   EXPECT_TRUE(split != NULL);
@@ -465,7 +465,7 @@ TEST(MessageSplitTest, AllValidExceptMiddle) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("split", "common_interfaces_test_msgs_ContainerSplit"));
   RTT::TaskContext *split = d.getDc()->getPeer("split");
   EXPECT_TRUE(split != NULL);
@@ -579,7 +579,7 @@ TEST(MessageSplitTest, AllValidExceptHigh) {
 
   message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
 
-  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_ports") );
+  EXPECT_TRUE( d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers") );
   EXPECT_TRUE(d.getDc()->loadComponent("split", "common_interfaces_test_msgs_ContainerSplit"));
   RTT::TaskContext *split = d.getDc()->getPeer("split");
   EXPECT_TRUE(split != NULL);

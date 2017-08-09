@@ -20,7 +20,7 @@ else()
 endif()
 
 # Set the subsystem ports header generation script path
-set(CREATE_CONVERTER_EXE_PATH ${rtt_subsystem_ports_DIR}/create_converter.py)
+set(CREATE_CONVERTER_EXE_PATH ${rtt_subsystem_buffers_DIR}/create_converter.py)
 
 include_directories(
   ${USE_OROCOS_INCLUDE_DIRS}

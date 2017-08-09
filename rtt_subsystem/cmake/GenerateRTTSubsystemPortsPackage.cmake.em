@@ -4,29 +4,6 @@
 
 cmake_minimum_required(VERSION 2.8.3)
 
-#macro(rtt_subsystem_ports_destinations)
-#  if(ORO_USE_ROSBUILD)
-#    #message(STATUS "[ros_generate_rtt_subsystem_ports] Generating ROS typekit for ${PROJECT_NAME} with ROSBuild destinations.")
-#    set(rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY    "${PROJECT_SOURCE_DIR}/include")
-#    set(rtt_subsystem_ports_GENERATED_HEADERS_INSTALL_DESTINATION)
-#  elseif(ORO_USE_CATKIN)
-#    #message(STATUS "[ros_generate_rtt_subsystem_ports] Generating ROS typekit for ${PROJECT_NAME} with Catkin destinations.")
-#    catkin_destinations()
-#    set(rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY    "${CATKIN_DEVEL_PREFIX}/include")
-#    set(rtt_subsystem_ports_GENERATED_HEADERS_INSTALL_DESTINATION "${CATKIN_GLOBAL_INCLUDE_DESTINATION}")
-#  else()
-#    #message(STATUS "[ros_generate_rtt_subsystem_ports] Generating ROS typekit for ${PROJECT_NAME} with normal CMake destinations.")
-#    set(rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY    "${PROJECT_BINARY_DIR}/include")
-#    set(rtt_subsystem_ports_GENERATED_HEADERS_INSTALL_DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
-#  endif()
-#
-#  if(DEFINED ENV{VERBOSE_CONFIG})
-#    message(STATUS "[ros_generate_rtt_subsystem_ports]   Generating headers in: ${rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY}")
-#    message(STATUS "[ros_generate_rtt_subsystem_ports]   Installing headers to: ${rtt_subsystem_ports_GENERATED_HEADERS_INSTALL_DESTINATION}")
-#  endif()
-#endmacro()
-
-
 macro(rtt_master_destinations)
   if(ORO_USE_ROSBUILD)
     #message(STATUS "[ros_generate_rtt_master] Generating ROS typekit for ${PROJECT_NAME} with ROSBuild destinations.")
@@ -79,12 +56,6 @@ macro(msgs_from_ec_config_destinations)
 #    message(STATUS "[ros_generate_msgs_from_ec_config]   Installing headers to: ${msgs_from_ec_config_GENERATED_HEADERS_INSTALL_DESTINATION}")
 #  endif()
 endmacro()
-
-#macro(rtt_subsystem_ports_debug)
-#  if(DEFINED ENV{VERBOSE_CONFIG})
-#    message(STATUS "[ros_generate_rtt_subsystem]     catkin_INCLUDE_DIRS: ${catkin_INCLUDE_DIRS}")
-#  endif()
-#endmacro()
 
 macro(ros_generate_rtt_master)
   set(_package ${PROJECT_NAME})

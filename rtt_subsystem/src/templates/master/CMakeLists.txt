@@ -17,57 +17,15 @@ rtt_master_destinations()
 
 set(PORT_DEF_FILE ${PROJECT_SOURCE_DIR}/spec/subsystem.xml)
 
-## Get all .msg files
-#if(${_package}_FOUND AND NOT ROSBUILD_init_called)
-#  # Use catkin-based genmsg to find msg files
-#  if(genmsg_VERSION VERSION_GREATER 0.4.19)
-#    set(MSG_FILES)
-#    # TODO: genmsg API is unstable at this level
-#    foreach(FILE ${${_package}_MESSAGE_FILES})
-#      if(IS_ABSOLUTE "${FILE}")
-#        list(APPEND MSG_FILES ${FILE})
-#      else()
-#        list(APPEND MSG_FILES ${${_package}_DIR}/../${FILE})
-#      endif()
-#    endforeach()
-#  else()
-#    message(SEND_ERROR "genmsg version must be 0.4.19 or greater to generate RTT typekits for ROS messages")
-#  endif()
-#elseif(ROSBUILD_init_called)
-#  # try to find rosbuild-style message package
-#  rosbuild_find_ros_package(${_package})
-#  if(DEFINED ${_package}_PACKAGE_PATH)
-#    set(${_package}_FOUND TRUE)
-#    set(${_package}_INCLUDE_DIRS "${${_package}_PACKAGE_PATH}/include")
-#    file(GLOB MSG_FILES "${${_package}_PACKAGE_PATH}/msg/*.msg")
-#    set(${_package}_EXPORTED_TARGETS)
-#  endif()
-#endif()
-
-## message package not found
-#if(NOT ${_package}_FOUND)
-#  message(SEND_ERROR "Package ${_package} not found. Will not generate RTT typekit.")
-#  return()
-#endif()
-
-## Return if nothing to do
-#if( "${MSG_FILES}" STREQUAL "" )
-#  message(STATUS "ros_generate_rtt_subsystem_ports: Could not find any .msg files in the ${_package} package.")
-#  return()
-#endif()
-
 # Set the subsystem ports header generation script path
 set(CREATE_MASTER_CPP_EXE_PATH ${rtt_subsystem_DIR}/create_master_cpp.py)
 set(CREATE_MASTER_H_EXE_PATH ${rtt_subsystem_DIR}/create_master_h.py)
 set(CREATE_SUBSYSTEM_OUTPUT_BUFFERS_EXE_PATH ${rtt_subsystem_DIR}/create_subsystem_output_buffers.py)
-#set(CREATE_SUBSYSTEM_INPUT_BUFFERS_EXE_PATH ${rtt_subsystem_DIR}/create_subsystem_input_buffers.py)
 
 set(MASTER_H_OUTPUT ${rtt_master_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos/${_package}/master.h)
 set(MASTER_CPP_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/master.cpp)
 #set(MASTER_LIBRARY_CPP_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/master_library.cpp)
 set(SUBSYSTEM_OUTPUT_BUFFERS_CPP_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output_buffers.cpp)
-#set(SUBSYSTEM_INPUT_BUFFERS_CPP_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/input_buffers.cpp)
-
 
 #get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 #message(WARNING "${dirs}")
@@ -105,15 +63,6 @@ add_custom_command(
   VERBATIM)
 list(APPEND subsystem_buffers-${_package}-library_SOURCES ${SUBSYSTEM_OUTPUT_BUFFERS_CPP_OUTPUT} )
 add_file_dependencies(${SUBSYSTEM_OUTPUT_BUFFERS_CPP_OUTPUT} ${CMAKE_CURRENT_LIST_FILE} ${MASTER_H_OUTPUT})
-
-#add_custom_command(
-#  OUTPUT ${SUBSYSTEM_INPUT_BUFFERS_CPP_OUTPUT}
-#  COMMAND ${CREATE_SUBSYSTEM_INPUT_BUFFERS_EXE_PATH} ${_package} ${PORT_DEF_FILE} ${SUBSYSTEM_INPUT_BUFFERS_CPP_OUTPUT}
-#  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-#  DEPENDS ${PORT_DEF_FILE} ${${_package}_EXPORTED_TARGETS} ${CREATE_SUBSYSTEM_INPUT_BUFFERS_EXE_PATH}
-#  VERBATIM)
-#list(APPEND subsystem_buffers-${_package}-library_SOURCES ${SUBSYSTEM_INPUT_BUFFERS_CPP_OUTPUT} )
-#add_file_dependencies(${SUBSYSTEM_INPUT_BUFFERS_CPP_OUTPUT} ${CMAKE_CURRENT_LIST_FILE} ${MASTER_H_OUTPUT})
 
 configure_file(
   component.cpp.in

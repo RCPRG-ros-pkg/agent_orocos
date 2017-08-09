@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
     }
 
     message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
-    if (!d.getDc()->import("rtt_common_interfaces_test_subsystem_ports")) {
+    if (!d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers")) {
         return 1;
     }
 

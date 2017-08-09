@@ -12,7 +12,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 include(AddFileDependencies)
 
 # Configure source and destination paths of generated files
-rtt_subsystem_ports_destinations()
+rtt_subsystem_buffers_destinations()
 
 # Check if we're generating code for messages in this package
 if("${_package}" STREQUAL "${PROJECT_NAME}")
@@ -61,18 +61,18 @@ endif()
 
 # Return if nothing to do
 if( "${MSG_FILES}" STREQUAL "" )
-  message(STATUS "ros_generate_rtt_subsystem_ports: Could not find any .msg files in the ${_package} package.")
+  message(STATUS "ros_generate_rtt_subsystem_buffers: Could not find any .msg files in the ${_package} package.")
   return()
 endif()
 
 # Set the subsystem ports header generation script path
-set(CREATE_SUBSYSTEM_PORTS_HEADER_EXE_PATH ${rtt_subsystem_ports_DIR}/create_subsystem_ports_header.py)
+set(CREATE_SUBSYSTEM_BUFFERS_HEADER_EXE_PATH ${rtt_subsystem_buffers_DIR}/create_subsystem_ports_header.py)
 
 # Set the subsystem ports sources generation script path
-set(CREATE_SUBSYSTEM_PORTS_SOURCE_EXE_PATH ${rtt_subsystem_ports_DIR}/create_subsystem_ports_source.py)
+set(CREATE_SUBSYSTEM_BUFFERS_SOURCE_EXE_PATH ${rtt_subsystem_buffers_DIR}/create_subsystem_ports_source.py)
 
 # Set the subsystem ports components' sources generation script path
-set(CREATE_COMPONENTS_SOURCE_EXE_PATH ${rtt_subsystem_ports_DIR}/create_components_source.py)
+set(CREATE_COMPONENTS_SOURCE_EXE_PATH ${rtt_subsystem_buffers_DIR}/create_components_source.py)
 
 # Store the ros package name
 set(ROSPACKAGE ${_package})
@@ -88,7 +88,7 @@ foreach( FILE ${MSG_FILES} )
   set(ROSMSGCTYPENAME    "/${_package}/c${ROSMSGNAME}")
 
   # msg_Types.hpp.in, ros_msg_typekit_plugin.cpp.in, ros_msg_typekit_package.cpp.in
-  set(ROSMSGSUBSYSTEMPORTSHEADER  "${_package}/subsystem_ports/${ROSMSGNAME}.h")
+  set(ROSMSGSUBSYSTEMPORTSHEADER  "${_package}/subsystem_buffers/${ROSMSGNAME}.h")
   # ros_msg_typekit_plugin.cpp.in, ros_msg_typekit_package.cpp.in
   set(ROSMSGSUBSYSTEMPORTSHEADERS "${ROSMSGSUBSYSTEMPORTSHEADERS}#include <orocos/${ROSMSGSUBSYSTEMPORTSHEADER}>\n")
   # ros_msg_typekit_plugin.cpp.in
@@ -103,27 +103,27 @@ foreach( FILE ${MSG_FILES} )
 #  set(ROSMSGTYPESHEADERS "${ROSMSGTYPESHEADERS}#include \"${ROSMSGNAME}.h\"\n")
 
   # Necessary for create_subsystem_ports_header.py command below
-  set(_ROSMSG_GENERATED_SUBSYSTEM_PORTS_HEADER  "${rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos/${ROSMSGSUBSYSTEMPORTSHEADER}")
-  list(APPEND ROSMSGS_GENERATED_SUBSYSTEM_PORTS_HEADERS ${_ROSMSG_GENERATED_SUBSYSTEM_PORTS_HEADER})
+  set(_ROSMSG_GENERATED_SUBSYSTEM_BUFFERS_HEADER  "${rtt_subsystem_buffers_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos/${ROSMSGSUBSYSTEMPORTSHEADER}")
+  list(APPEND ROSMSGS_GENERATED_SUBSYSTEM_BUFFERS_HEADERS ${_ROSMSG_GENERATED_SUBSYSTEM_BUFFERS_HEADER})
 
   add_custom_command(
-    OUTPUT ${_ROSMSG_GENERATED_SUBSYSTEM_PORTS_HEADER}
-    COMMAND ${CREATE_SUBSYSTEM_PORTS_HEADER_EXE_PATH} ${_package} "${_package}/${ROSMSGNAME}" ${FILE} ${_ROSMSG_GENERATED_SUBSYSTEM_PORTS_HEADER}
+    OUTPUT ${_ROSMSG_GENERATED_SUBSYSTEM_BUFFERS_HEADER}
+    COMMAND ${CREATE_SUBSYSTEM_BUFFERS_HEADER_EXE_PATH} ${_package} "${_package}/${ROSMSGNAME}" ${FILE} ${_ROSMSG_GENERATED_SUBSYSTEM_BUFFERS_HEADER}
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    DEPENDS ${FILE} ${${_package}_EXPORTED_TARGETS} ${CREATE_SUBSYSTEM_PORTS_HEADER_EXE_PATH}
+    DEPENDS ${FILE} ${${_package}_EXPORTED_TARGETS} ${CREATE_SUBSYSTEM_BUFFERS_HEADER_EXE_PATH}
     VERBATIM)
 
   #set_source_files_properties(${ROSMSGS_GENERATED_SUBSYSTEM_PORTS_HEADERS} PROPERTIES GENERATED TRUE)
 
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_ports.cpp
-    COMMAND ${CREATE_SUBSYSTEM_PORTS_SOURCE_EXE_PATH} ${_package} "${_package}/${ROSMSGNAME}" ${FILE} ${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_ports.cpp
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_buffers.cpp
+    COMMAND ${CREATE_SUBSYSTEM_BUFFERS_SOURCE_EXE_PATH} ${_package} "${_package}/${ROSMSGNAME}" ${FILE} ${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_buffers.cpp
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    DEPENDS ${FILE} ${${_package}_EXPORTED_TARGETS} ${CREATE_SUBSYSTEM_PORTS_SOURCE_EXE_PATH}
+    DEPENDS ${FILE} ${${_package}_EXPORTED_TARGETS} ${CREATE_SUBSYSTEM_BUFFERS_SOURCE_EXE_PATH}
     VERBATIM)
-#  list(APPEND rtt-${_package}-components_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_ports.cpp )
-  list(APPEND rtt-${_package}-library_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_ports.cpp )
-  add_file_dependencies(${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_ports.cpp ${CMAKE_CURRENT_LIST_FILE} ${_ROSMSG_GENERATED_SUBSYSTEM_PORTS_HEADER})
+#  list(APPEND rtt-${_package}-components_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_buffers.cpp )
+  list(APPEND rtt-${_package}-library_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_buffers.cpp )
+  add_file_dependencies(${CMAKE_CURRENT_BINARY_DIR}/ros_${ROSMSGNAME}_subsystem_buffers.cpp ${CMAKE_CURRENT_LIST_FILE} ${_ROSMSG_GENERATED_SUBSYSTEM_BUFFERS_HEADER})
 
 
 #  get_filename_component(MSG_FILENAME <FileName> <COMP> [CACHE])
@@ -136,7 +136,7 @@ foreach( FILE ${MSG_FILES} )
         DEPENDS ${FILE} ${${_package}_EXPORTED_TARGETS} ${CREATE_COMPONENTS_SOURCE_EXE_PATH}
         VERBATIM)
       list(APPEND rtt-${_package}-components_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${_package}_${ROSMSGNAME}_components.cpp )
-      add_file_dependencies(${CMAKE_CURRENT_BINARY_DIR}/${_package}_${ROSMSGNAME}_components.cpp ${CMAKE_CURRENT_LIST_FILE} ${_ROSMSG_GENERATED_SUBSYSTEM_PORTS_HEADER})
+      add_file_dependencies(${CMAKE_CURRENT_BINARY_DIR}/${_package}_${ROSMSGNAME}_components.cpp ${CMAKE_CURRENT_LIST_FILE} ${_ROSMSG_GENERATED_SUBSYSTEM_BUFFERS_HEADER})
   endif()
 
 endforeach( FILE ${MSG_FILES} )
@@ -147,9 +147,9 @@ configure_file(
 list(APPEND rtt-${_package}-components_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${_package}_component.cpp )
 
 include_directories(
-  ${rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY}
-  ${rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos
-  ${rtt_subsystem_ports_GENERATED_HEADERS_INSTALL_DESTINATION}/orocos
+  ${rtt_subsystem_buffers_GENERATED_HEADERS_OUTPUT_DIRECTORY}
+  ${rtt_subsystem_buffers_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos
+  ${rtt_subsystem_buffers_GENERATED_HEADERS_INSTALL_DESTINATION}/orocos
   ${USE_OROCOS_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
   ${${_package}_INCLUDE_DIRS})
@@ -159,12 +159,12 @@ if(NOT DEFINED CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "Release")
   set(CMAKE_BUILD_TYPE MinSizeRel)
 endif()
 
-add_library(rtt-${_package}-subsystem_ports ${rtt-${_package}-library_SOURCES})
-target_link_libraries(rtt-${_package}-subsystem_ports ${catkin_LIBRARIES} ${${_package}_LIBRARIES} ${USE_OROCOS_LIBRARIES})
-list(APPEND OROCOS_DEFINED_TYPES " -lrtt-${_package}-subsystem_ports")
+add_library(rtt-${_package}-subsystem_buffers ${rtt-${_package}-library_SOURCES})
+target_link_libraries(rtt-${_package}-subsystem_buffers ${catkin_LIBRARIES} ${${_package}_LIBRARIES} ${USE_OROCOS_LIBRARIES})
+list(APPEND OROCOS_DEFINED_TYPES " -lrtt-${_package}-subsystem_buffers")
 
 if(DEFINED _enable_converter)
-  set(CREATE_CONVERTER_EXE_PATH ${rtt_subsystem_ports_DIR}/create_converter.py)
+  set(CREATE_CONVERTER_EXE_PATH ${rtt_subsystem_buffers_DIR}/create_converter.py)
 
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/buffer_converter.cpp
@@ -173,40 +173,40 @@ if(DEFINED _enable_converter)
     DEPENDS ${${_package}_EXPORTED_TARGETS} ${CREATE_CONVERTER_EXE_PATH}
     VERBATIM)
 
-  orocos_component(rtt-${_package}-subsystem_ports-components ${rtt-${_package}-components_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/buffer_converter.cpp)
+  orocos_component(rtt-${_package}-subsystem_buffers-components ${rtt-${_package}-components_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/buffer_converter.cpp)
 else()
-  orocos_component(rtt-${_package}-subsystem_ports-components ${rtt-${_package}-components_SOURCES})
+  orocos_component(rtt-${_package}-subsystem_buffers-components ${rtt-${_package}-components_SOURCES})
 endif()
 
-target_link_libraries(rtt-${_package}-subsystem_ports-components ${catkin_LIBRARIES} ${${_package}_LIBRARIES} ${USE_OROCOS_LIBRARIES} rtt-${_package}-subsystem_ports)
+target_link_libraries(rtt-${_package}-subsystem_buffers-components ${catkin_LIBRARIES} ${${_package}_LIBRARIES} ${USE_OROCOS_LIBRARIES} rtt-${_package}-subsystem_buffers)
 
 
 # Add an explicit dependency between the typekits and message files
 # TODO: Add deps for all msg dependencies
 if(${_package}_EXPORTED_TARGETS)
   if(NOT ${_package} STREQUAL ${PROJECT_NAME})
-    add_dependencies(rtt-${_package}-subsystem_ports ${${_package}_EXPORTED_TARGETS})
-    add_dependencies(rtt-${_package}-subsystem_ports-components ${${_package}_EXPORTED_TARGETS})
+    add_dependencies(rtt-${_package}-subsystem_buffers ${${_package}_EXPORTED_TARGETS})
+    add_dependencies(rtt-${_package}-subsystem_buffers-components ${${_package}_EXPORTED_TARGETS})
   endif()
 endif()
 
 # Add the typekit libraries to the dependecies exported by this project
 #    LIST(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS "rtt-${_package}-subsystem_ports")  # <-- This is already done in orocos_library().
 #    LIST(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS "rtt-${_package}-subsystem_ports-components")  # <-- This is already done in orocos_component().
-LIST(APPEND ${PROJECT_NAME}_EXPORTED_INCLUDE_DIRS "${rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos" ${${_package}_INCLUDE_DIRS})
+LIST(APPEND ${PROJECT_NAME}_EXPORTED_INCLUDE_DIRS "${rtt_subsystem_buffers_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos" ${${_package}_INCLUDE_DIRS})
 
 #add_file_dependencies(${CMAKE_CURRENT_BINARY_DIR}/ros_${_package}_typekit.cpp ${CMAKE_CURRENT_LIST_FILE} ${ROSMSGS_GENERATED_SUBSYSTEM_PORTS_HEADERS})
 
 get_directory_property(_additional_make_clean_files ADDITIONAL_MAKE_CLEAN_FILES)
-list(APPEND _additional_make_clean_files "${rtt-${_package}-components_SOURCES};${rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos/${_package}")
+list(APPEND _additional_make_clean_files "${rtt-${_package}-components_SOURCES};${rtt_subsystem_buffers_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos/${_package}")
 set_directory_properties(PROPERTIES
   ADDITIONAL_MAKE_CLEAN_FILES "${_additional_make_clean_files}")
 
 # Install generated header files (dependent packages might need them)
-if(DEFINED rtt_subsystem_ports_GENERATED_HEADERS_INSTALL_DESTINATION)
+if(DEFINED rtt_subsystem_buffers_GENERATED_HEADERS_INSTALL_DESTINATION)
   install(
-    DIRECTORY "${rtt_subsystem_ports_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos/${_package}"
-    DESTINATION "${rtt_subsystem_ports_GENERATED_HEADERS_INSTALL_DESTINATION}/orocos")
+    DIRECTORY "${rtt_subsystem_buffers_GENERATED_HEADERS_OUTPUT_DIRECTORY}/orocos/${_package}"
+    DESTINATION "${rtt_subsystem_buffers_GENERATED_HEADERS_INSTALL_DESTINATION}/orocos")
 endif()
 
 # Export variables to the PARENT_SCOPE

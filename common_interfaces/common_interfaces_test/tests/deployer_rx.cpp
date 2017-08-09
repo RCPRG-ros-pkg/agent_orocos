@@ -162,8 +162,8 @@ int main(int argc, char *argv[]) {
     }
 
     message_tests::TestDeployer& d = message_tests::TestDeployer::Instance();
-    if (!d.getDc()->import("rtt_common_interfaces_test_subsystem_ports")) {
-        std::cout << "could not import rtt_common_interfaces_test_subsystem_ports" << std::endl;
+    if (!d.getDc()->import("rtt_common_interfaces_test_subsystem_buffers")) {
+        std::cout << "could not import rtt_common_interfaces_test_subsystem_buffers" << std::endl;
         return 1;
     }
 

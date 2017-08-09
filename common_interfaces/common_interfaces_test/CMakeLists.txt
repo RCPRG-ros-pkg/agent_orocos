@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   shm_comm
   common_interfaces
   common_interfaces_test_msgs
-  rtt_common_interfaces_test_subsystem_ports
+  rtt_common_interfaces_test_subsystem_buffers
   )
 
 include_directories(${catkin_INCLUDE_DIRS})

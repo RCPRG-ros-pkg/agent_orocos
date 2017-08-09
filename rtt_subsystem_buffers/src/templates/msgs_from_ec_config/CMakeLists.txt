@@ -23,7 +23,7 @@ endif()
 #find_package(genmsg REQUIRED)
 
 # Set the subsystem ports header generation script path
-set(CREATE_MSGS_FROM_EC_CONFIG_EXE_PATH ${rtt_subsystem_ports_DIR}/create_msgs_from_ec_config.py)
+set(CREATE_MSGS_FROM_EC_CONFIG_EXE_PATH ${rtt_subsystem_buffers_DIR}/create_msgs_from_ec_config.py)
 
 # Set the subsystem ports sources generation script path
 #set(CREATE_SUBSYSTEM_PORTS_SOURCE_EXE_PATH ${rtt_subsystem_ports_DIR}/create_subsystem_ports_source.py)

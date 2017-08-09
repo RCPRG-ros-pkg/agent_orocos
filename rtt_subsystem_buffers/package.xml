@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package>
-  <name>rtt_subsystem_ports</name>
+  <name>rtt_subsystem_buffers</name>
   <version>2.9.0</version>
   <description>
-    rtt_subsystem_ports provides the necessary template files and cmake macros for
+    rtt_subsystem_buffers provides the necessary template files and cmake macros for
     automatic rtt subsystem ports generation from ROS msg files.
     based on rtt_roscomm from https://github.com/orocos/rtt_ros_integration.git
   </description>
