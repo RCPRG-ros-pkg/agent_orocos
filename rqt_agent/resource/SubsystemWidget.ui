@@ -114,25 +114,32 @@
        </layout>
       </item>
       <item>
-       <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0">
+       <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0,0">
         <item row="0" column="2">
-         <widget class="QPushButton" name="showComponents">
+         <widget class="QPushButton" name="showComponentsList">
           <property name="text">
-           <string>Components</string>
+           <string>Components list</string>
           </property>
          </widget>
         </item>
         <item row="0" column="0">
-         <widget class="QPushButton" name="showGraph">
+         <widget class="QPushButton" name="showBehaviorGraph">
           <property name="text">
-           <string>Graph</string>
+           <string>Behavior graph</string>
           </property>
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QPushButton" name="showHistory">
+         <widget class="QPushButton" name="showBehaviorHistory">
           <property name="text">
-           <string>History</string>
+           <string>Behavior history</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QPushButton" name="showStateMachineGraph">
+          <property name="text">
+           <string>FSM graph</string>
           </property>
          </widget>
         </item>
