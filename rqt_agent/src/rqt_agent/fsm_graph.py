@@ -139,7 +139,7 @@ class GraphView(QGraphicsView):
         else:
             super(GraphView, self).mouseReleaseEvent(event)
 
-class GraphDialog(QDialog):
+class BehaviorGraphDialog(QDialog):
 
     def scX(self, x):
         return self.scale_factor * float(x)
@@ -213,14 +213,14 @@ class GraphDialog(QDialog):
         self.showGraph(graph_name)
 
     def __init__(self, subsystem_name, parent=None):
-        super(GraphDialog, self).__init__(parent)
+        super(BehaviorGraphDialog, self).__init__(parent)
 
         self.parent = parent
 
         self.setWindowFlags(Qt.Window)
 
         rp = rospkg.RosPack()
-        ui_file = os.path.join(rp.get_path('rqt_agent'), 'resource', 'GraphVis.ui')
+        ui_file = os.path.join(rp.get_path('rqt_agent'), 'resource', 'FsmVis.ui')
         loadUi(ui_file, self)
 
         self.setWindowTitle(subsystem_name + " - transition function")
@@ -429,20 +429,297 @@ class GraphDialog(QDialog):
                 for comp_name in self.nodes[graph_name]:
                     if comp_name in self.components_state:
                         self.nodes[graph_name][comp_name].setBrush(getComponentBrush(self.components_state[comp_name]))
+                        
+                        
+                        
+class StateMachineGraphDialog(QDialog):
 
-#    def wheelEvent(self, event):
-#        print dir(event)
-#        print event.delta()
-#        ui->graphicsView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-#        // Scale the view / do the zoom
-#        double scaleFactor = 1.15;
-#        if(event->delta() > 0) {
-#            // Zoom in
-#            ui->graphicsView-> scale(scaleFactor, scaleFactor);
-# 
-#        } else {
-#            // Zooming out
-#             ui->graphicsView->scale(1.0 / scaleFactor, 1.0 / scaleFactor);
-#        }
-#        //ui->graphicsView->setTransform(QTransform(h11, h12, h21, h22, 0, 0));
+    def scX(self, x):
+        return self.scale_factor * float(x)
 
+    def scY(self, y):
+        return self.scale_factor * float(y)
+
+    def tfX(self, x):
+        return self.scale_factor * float(x)
+
+    def tfY(self, y):
+        return self.scale_factor * (self.height - float(y))
+
+    @Slot(int)
+    def portSelected(self, index):
+        for e in self.prev_selected_connections:
+            e.setPen( QPen(QBrush(QColor(0,0,0)), 0) )
+        self.prev_selected_connections = []
+
+        if not self.component_selected:
+            return
+
+        for conn in self.parent.all_connections:
+            if (conn[0] == self.component_selected and conn[1] == self.selected_component_port_names[index]) or \
+                (conn[2] == self.component_selected and conn[3] == self.selected_component_port_names[index]):
+                for graph_name in self.edges:
+                    for e in self.edges[graph_name]:
+                        data = e.data(0)
+                        if (data[0] == conn[0] and data[1] == conn[2]) or \
+                            (data[0] == conn[2] and data[1] == conn[0]):
+                            e.setPen( QPen(QBrush(QColor(255,0,0)), 5) )
+                            self.prev_selected_connections.append(e)
+
+    @Slot(str)
+    def componentSelected(self, name):
+        self.comboBoxConnections.clear()
+        self.component_selected = name
+
+        if name == None:
+            self.labelSelectedComponent.setText('')
+            return
+
+        self.labelSelectedComponent.setText(name)
+        for comp in self.parent.subsystem_info.components:
+            if comp.name == name:
+                self.selected_component_port_names = []
+                for p in comp.ports:
+                    self.selected_component_port_names.append(p.name)
+                    port_str = ''
+                    if p.is_input:
+                        port_str += '[IN]'
+                    else:
+                        port_str += '[OUT]'
+                    port_str += ' ' + p.name
+                    if p.is_connected:
+                        port_str += ' <conncected>'
+                    else:
+                        port_str += ' <not conncected>'
+                    type_str = ''
+                    for tn in p.type_names:
+                        type_str += ' ' + tn
+                    if len(type_str) == 0:
+                        type_str = 'unknown type'
+                    port_str += ', type:' + type_str
+                    self.comboBoxConnections.addItem(port_str)
+                break
+
+    @Slot(int)
+    def graphSelected(self, index):
+        graph_name = self.comboBoxGraphs.itemText(index)
+        self.showGraph(graph_name)
+
+    def __init__(self, subsystem_name, parent=None):
+        super(StateMachineGraphDialog, self).__init__(parent)
+
+        self.parent = parent
+
+        self.setWindowFlags(Qt.Window)
+
+        rp = rospkg.RosPack()
+        ui_file = os.path.join(rp.get_path('rqt_agent'), 'resource', 'FsmVis.ui')
+        loadUi(ui_file, self)
+
+        self.setWindowTitle(subsystem_name + " - transition function")
+        self.components_state = None
+        self.initialized = False
+
+        self.pushButton_export.clicked.connect(self.exportClick)
+        self.pushButton_reset_view.clicked.connect(self.reset_viewClick)
+
+        self.pushButton_close.clicked.connect(self.closeClick)
+        self.pushButton_zoom_in.clicked.connect(self.zoomInClick)
+        self.pushButton_zoom_out.clicked.connect(self.zoomOutClick)
+
+        self.prev_selected_connections = []
+        self.comboBoxConnections.highlighted.connect(self.portSelected)
+        self.comboBoxGraphs.highlighted.connect(self.graphSelected)
+
+        self.componentSelected(None)
+        self.scene = {}
+        self.graphicsView = None
+        self.nodes = {}
+        self.edges = {}
+
+    def showGraph(self, graph_name):
+        if not graph_name in self.scene:
+            print "could not show graph " + graph_name
+            return
+
+        if not self.graphicsView:
+            self.graphicsView = GraphView()
+            self.verticalLayout.insertWidget(0, self.graphicsView)
+
+        self.graphicsView.setScene(self.scene[graph_name])
+
+        self.graphicsView.comp_select_signal.connect(self.componentSelected)
+        self.initialized = True
+
+    def addGraph(self, graph_name, graph_str):
+
+        self.comboBoxGraphs.addItem(graph_name)
+
+        graph = graph_str.splitlines()
+
+        header = graph[0].split()
+        if header[0] != 'graph':
+            raise Exception('wrong graph format', 'header is: ' + graph[0])
+
+        self.scale_factor = 100.0
+        self.width = float(header[2])
+        self.height = float(header[3])
+        print "QGraphicsScene size:", self.width, self.height
+
+        self.scene[graph_name] = GraphScene(QRectF(0, 0, self.scX(self.width), self.scY(self.height)))
+
+        self.nodes[graph_name] = {}
+        self.edges[graph_name] = []
+
+        for l in graph:
+            items = l.split()
+            if len(items) == 0:
+                continue
+            elif items[0] == 'stop':
+                break
+            elif items[0] == 'node':
+                #node CImp 16.472 5.25 0.86659 0.5 CImp filled ellipse lightblue lightblue
+                if len(items) != 11:
+                    raise Exception('wrong number of items in line', 'line is: ' + l)
+                name = items[6]
+                if name == "\"\"":
+                    name = ""
+                w = self.scX(items[4])
+                h = self.scY(items[5])
+                x = self.tfX(items[2])
+                y = self.tfY(items[3])
+
+                self.nodes[graph_name][name] = self.scene[graph_name].addEllipse(x - w/2, y - h/2, w, h)
+                self.nodes[graph_name][name].setData(0, name)
+                text_item = self.scene[graph_name].addSimpleText(name)
+                br = text_item.boundingRect()
+                text_item.setPos(x - br.width()/2, y - br.height()/2)
+
+            elif items[0] == 'edge':
+                # without label:
+                # edge CImp Ts 4 16.068 5.159 15.143 4.9826 12.876 4.5503 11.87 4.3583 solid black
+                #
+                # with label:
+                # edge b_stSplit TorsoVelAggregate 7 7.5051 6.3954 7.7054 6.3043 7.9532 6.1899 8.1728 6.0833 8.4432 5.9522 8.7407 5.8012 8.9885 5.6735 aa 8.6798 5.9792 solid black
+                line_len = int(items[3])
+                label_text = None
+                label_pos = None
+                if (line_len * 2 + 6) == len(items):
+                    # no label
+                    pass
+                elif (line_len * 2 + 9) == len(items):
+                    # edge with label
+                    label_text = items[4 + line_len*2]
+                    label_pos = QPointF(self.tfX(items[4 + line_len*2 + 1]), self.tfY(items[4 + line_len*2 + 2]))
+                else:
+                    raise Exception('wrong number of items in line', 'should be: ' + str(line_len * 2 + 6) + " or " + str(line_len * 2 + 9) + ', line is: ' + l)
+                    
+                line = []
+                for i in range(line_len):
+                    line.append( (self.tfX(items[4+i*2]), self.tfY(items[5+i*2])) )
+                control_points_idx = 1
+                path = QPainterPath(QPointF(line[0][0], line[0][1]))
+                while True:
+                    q1 = line[control_points_idx]
+                    q2 = line[control_points_idx+1]
+                    p2 = line[control_points_idx+2]
+                    path.cubicTo( q1[0], q1[1], q2[0], q2[1], p2[0], p2[1] )
+                    control_points_idx = control_points_idx + 3
+                    if control_points_idx >= len(line):
+                        break
+                edge = self.scene[graph_name].addPath(path)
+                edge.setData(0, (items[1], items[2]))
+                self.edges[graph_name].append(edge)
+
+                end_p = QPointF(line[-1][0], line[-1][1])
+                p0 = end_p - QPointF(line[-2][0], line[-2][1])
+                p0_norm = math.sqrt(p0.x()*p0.x() + p0.y()*p0.y())
+                p0 = p0 / p0_norm
+                p0 = p0 * self.scale_factor * 0.15
+                p1 = QPointF(p0.y(), -p0.x()) * 0.25
+                p2 = -p1
+
+                poly = QPolygonF()
+                poly.append(p0+end_p)
+                poly.append(p1+end_p)
+                poly.append(p2+end_p)
+                poly.append(p0+end_p)
+
+#                poly_path = QPainterPath()
+#                poly_path.addPolygon(poly)
+#                painter = QPainter()
+                self.scene[graph_name].addPolygon(poly)
+
+                if label_text and label_pos:
+                    if label_text[0] == "\"":
+                        label_text = label_text[1:]
+                    if label_text[-1] == "\"":
+                        label_text = label_text[:-1]
+                    label_text = label_text.replace("\\n", "\n")
+                    label_item = self.scene[graph_name].addSimpleText(label_text)
+                    br = label_item.boundingRect()
+                    label_item.setPos(label_pos.x() - br.width()/2, label_pos.y() - br.height()/2)
+
+#        svgGen = QSvgGenerator()
+#        svgGen.setFileName( graph_name + ".svg" )
+#        svgGen.setSize(QSize(self.scX(self.width), self.scY(self.height)))
+#        svgGen.setViewBox(QRect(0, 0, self.scX(self.width), self.scY(self.height)))
+#        svgGen.setTitle("SVG Generator Example Drawing")
+#        svgGen.setDescription("An SVG drawing created by the SVG Generator Example provided with Qt.")
+#        painter = QPainter( svgGen )
+#        self.scene[graph_name].render( painter );
+#        del painter
+
+    @Slot()
+    def exportClick(self):
+        if not self.initialized:
+            return
+        self.parent.exportGraphs()
+
+    @Slot()
+    def reset_viewClick(self):
+        if not self.initialized:
+            return
+
+        self.graphicsView.resetTransform()
+
+    @Slot()
+    def closeClick(self):
+        self.close()
+
+    @Slot()
+    def zoomInClick(self):
+        if not self.initialized:
+            return
+
+        scaleFactor = 1.1
+        self.graphicsView.scale(scaleFactor, scaleFactor)
+
+    @Slot()
+    def zoomOutClick(self):
+        if not self.initialized:
+            return
+
+        scaleFactor = 1.0/1.1
+        self.graphicsView.scale(scaleFactor, scaleFactor)
+
+    def updateState(self, components_state):
+        if not self.initialized:
+            return
+
+        changed = False
+        if self.components_state == None:
+            changed = True
+        else:
+            for comp_name in self.components_state:
+                if self.components_state[comp_name] != components_state[comp_name]:
+                    changed = True
+                    break
+
+        if changed:
+            self.components_state = components_state
+            for graph_name in self.nodes:
+                for comp_name in self.nodes[graph_name]:
+                    if comp_name in self.components_state:
+                        self.nodes[graph_name][comp_name].setBrush(getComponentBrush(self.components_state[comp_name]))
+                        
