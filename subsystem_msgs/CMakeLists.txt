@@ -34,6 +34,7 @@ add_message_files(
   PortInfo.msg
   ConnectionInfo.msg
   StateInfo.msg
+  NextStateInfo.msg
 )
 
 ## Generate services in the 'srv' folder

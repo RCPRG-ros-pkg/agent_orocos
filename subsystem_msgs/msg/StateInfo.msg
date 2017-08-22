@@ -1,3 +1,4 @@
 string name
-string[] next_state_names
+string[] behavior_names
+NextStateInfo[] next_states
 
