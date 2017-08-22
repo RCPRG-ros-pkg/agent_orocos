@@ -25,31 +25,44 @@
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef COMMON_BEHAVIOR_INPUT_DATA_H__
-#define COMMON_BEHAVIOR_INPUT_DATA_H__
+#ifndef SUBSYSTEM_COMMON_BUFFER_INFO_H_
+#define SUBSYSTEM_COMMON_BUFFER_INFO_H_
 
-#include <boost/shared_ptr.hpp>
+namespace subsystem_common {
 
-namespace common_behavior {
-
-class BufferGroup {
+class BufferInfo {
 public:
-    double min_period;
-    double first_timeout;
-    double first_timeout_sim;
-    double next_timeout;
-    size_t id;
+    BufferInfo( const std::string& interface_type,
+                const std::string& interface_alias)
+        : interface_alias_(interface_alias)
+        , interface_type_(interface_type) {
+    }
+
+    // the prefix used to generate interface classes with macro
+    // ORO_LIST_INTERFACE_COMPONENTS
+    std::string interface_alias_;
+    std::string interface_type_;
 };
 
-class InputData {
+class InputBufferInfo : public BufferInfo {
 public:
+    InputBufferInfo(    const std::string& interface_type,
+                        const std::string& interface_alias)
 
+        : BufferInfo(interface_type, interface_alias)
+    {
+    }
 };
 
-typedef boost::shared_ptr<InputData > InputDataPtr;
-typedef boost::shared_ptr<const InputData > InputDataConstPtr;
+class OutputBufferInfo : public BufferInfo {
+public:
+    OutputBufferInfo(   const std::string& interface_type,
+                        const std::string& interface_alias)
+        : BufferInfo(interface_type, interface_alias) {
+    }
+};
 
-};  // namespace common_behavior
+}   // namespace subsystem_common
 
-#endif  // COMMON_BEHAVIOR_INPUT_DATA_H__
+#endif  // SUBSYSTEM_COMMON_BUFFER_INFO_H_
 

@@ -25,9 +25,6 @@ install(PROGRAMS cmake/create_master_h.py DESTINATION ${CATKIN_PACKAGE_SHARE_DES
 file(COPY cmake/parse_subsystem_xml.py DESTINATION "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/cmake")
 install(PROGRAMS cmake/parse_subsystem_xml.py DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/cmake)
 
-file(COPY cmake/create_subsystem_input_buffers.py DESTINATION "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/cmake")
-install(PROGRAMS cmake/create_subsystem_input_buffers.py DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/cmake)
-
 file(COPY cmake/create_subsystem_output_buffers.py DESTINATION "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/cmake")
 install(PROGRAMS cmake/create_subsystem_output_buffers.py DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/cmake)
 

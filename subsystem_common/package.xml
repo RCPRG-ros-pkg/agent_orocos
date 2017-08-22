@@ -1,5 +1,5 @@
 <package>
-  <name>common_behavior</name>
+  <name>subsystem_common</name>
   <version>0.1.1</version>
   <license>BSD</license>
   <maintainer email="dawid.seredynski@blablabla.gmail.com">dseredyn</maintainer>

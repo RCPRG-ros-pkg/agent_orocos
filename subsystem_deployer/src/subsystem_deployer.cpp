@@ -26,7 +26,7 @@
 */
 
 #include "subsystem_deployer/subsystem_deployer.h"
-#include "common_behavior/abstract_port_converter.h"
+#include "subsystem_common/abstract_port_converter.h"
 
 #include <rtt/rtt-config.h>
 #include <rtt/os/main.h>
@@ -283,7 +283,7 @@ void scanService(Service::shared_ptr sv)
             return true;
         }
 
-        boost::shared_ptr<common_behavior::MasterServiceRequester > master_service = master_component->getProvider<common_behavior::MasterServiceRequester >("master");
+        boost::shared_ptr<subsystem_common::MasterServiceRequester > master_service = master_component->getProvider<subsystem_common::MasterServiceRequester >("master");
 
         if (!master_service) {
             return true;
@@ -308,7 +308,7 @@ void scanService(Service::shared_ptr sv)
 // TODO
         std::vector<std::string > b_names = master_service->getBehaviors();
         for (int i = 0; i < b_names.size(); ++i) {
-            auto b_ptr = common_behavior::BehaviorFactory::Instance()->Create( b_names[i] );
+            auto b_ptr = subsystem_common::BehaviorFactory::Instance()->Create( b_names[i] );
             const std::vector<std::string >& r = b_ptr->getRunningComponents();
 
             subsystem_msgs::BehaviorInfo bi;
@@ -386,19 +386,19 @@ const std::string& SubsystemDeployer::getChannelName(const std::string& alias) c
     return it->second;
 }
 
-const std::vector<common_behavior::InputBufferInfo >& SubsystemDeployer::getLowerInputBuffers() const {
+const std::vector<subsystem_common::InputBufferInfo >& SubsystemDeployer::getLowerInputBuffers() const {
     return lowerInputBuffers_;
 }
 
-const std::vector<common_behavior::InputBufferInfo >& SubsystemDeployer::getUpperInputBuffers() const {
+const std::vector<subsystem_common::InputBufferInfo >& SubsystemDeployer::getUpperInputBuffers() const {
     return upperInputBuffers_;
 }
 
-const std::vector<common_behavior::OutputBufferInfo >& SubsystemDeployer::getLowerOutputBuffers() const {
+const std::vector<subsystem_common::OutputBufferInfo >& SubsystemDeployer::getLowerOutputBuffers() const {
     return lowerOutputBuffers_;
 }
 
-const std::vector<common_behavior::OutputBufferInfo >& SubsystemDeployer::getUpperOutputBuffers() const {
+const std::vector<subsystem_common::OutputBufferInfo >& SubsystemDeployer::getUpperOutputBuffers() const {
     return upperOutputBuffers_;
 }
 
@@ -420,13 +420,13 @@ bool SubsystemDeployer::import(const std::string& name) {
     return true;
 }
 
-static void printInputBufferInfo(const common_behavior::InputBufferInfo& info) {
+static void printInputBufferInfo(const subsystem_common::InputBufferInfo& info) {
     Logger::log()
         << ", interface_alias: \'" << info.interface_alias_ << "\'"
         << Logger::endl;
 }
 
-static void printOutputBufferInfo(const common_behavior::OutputBufferInfo& info) {
+static void printOutputBufferInfo(const subsystem_common::OutputBufferInfo& info) {
     Logger::log()
         << ", interface_alias: \'" << info.interface_alias_ << "\'"
         << Logger::endl;
@@ -492,7 +492,7 @@ bool SubsystemDeployer::setChannelsNames() {
     return true;
 }
 
-bool SubsystemDeployer::deployBufferSplitComponent(const common_behavior::BufferInfo& buf_info) {
+bool SubsystemDeployer::deployBufferSplitComponent(const subsystem_common::BufferInfo& buf_info) {
     std::string suffix = "Split";
     std::string type = buf_info.interface_type_ + suffix;
 
@@ -512,7 +512,7 @@ bool SubsystemDeployer::deployBufferSplitComponent(const common_behavior::Buffer
     return true;
 }
 
-bool SubsystemDeployer::deployBufferConcateComponent(const common_behavior::BufferInfo& buf_info) {
+bool SubsystemDeployer::deployBufferConcateComponent(const subsystem_common::BufferInfo& buf_info) {
     std::string suffix = "Concate";
     std::string type = buf_info.interface_type_ + suffix;
 
@@ -559,7 +559,7 @@ bool SubsystemDeployer::connectPorts(const std::string& from, const std::string&
             return false;
         }
 
-        std::string conv_type = common_behavior::PortConverterFactory::Instance()->getPortConverter(pa, pb);
+        std::string conv_type = subsystem_common::PortConverterFactory::Instance()->getPortConverter(pa, pb);
 
         if (conv_type.empty()) {
             RTT::log(RTT::Error) << "could not find converted for ports: '" << from << "' and '" << to << "'" << RTT::endlog();
@@ -594,9 +594,9 @@ bool SubsystemDeployer::connectPorts(const std::string& from, const std::string&
     return false;
 }
 
-bool SubsystemDeployer::createInputBuffers(const std::vector<common_behavior::InputBufferInfo >& buffers) {
+bool SubsystemDeployer::createInputBuffers(const std::vector<subsystem_common::InputBufferInfo >& buffers) {
     for (int i = 0; i < buffers.size(); ++i) {
-        const common_behavior::InputBufferInfo& buf_info = buffers[i];
+        const subsystem_common::InputBufferInfo& buf_info = buffers[i];
 
         if (!deployBufferSplitComponent(buf_info)) {
             return false;
@@ -614,7 +614,7 @@ bool SubsystemDeployer::createInputBuffers(const std::vector<common_behavior::In
     return true;
 }
 
-bool SubsystemDeployer::createOutputBuffers(const std::vector<common_behavior::OutputBufferInfo >& buffers) {
+bool SubsystemDeployer::createOutputBuffers(const std::vector<subsystem_common::OutputBufferInfo >& buffers) {
     RTT::TaskContext* comp = dc_->getPeer("Y");
 
     if (!comp) {
@@ -630,7 +630,7 @@ bool SubsystemDeployer::createOutputBuffers(const std::vector<common_behavior::O
     }
 
     for (int i = 0; i < buffers.size(); ++i) {
-        const common_behavior::OutputBufferInfo& buf_info = buffers[i];
+        const subsystem_common::OutputBufferInfo& buf_info = buffers[i];
 
         if (!deployBufferConcateComponent(buf_info)) {
             return false;
@@ -706,7 +706,7 @@ bool SubsystemDeployer::initializeSubsystem(const std::string& master_package_na
         !import("rtt_rosclock") ||
         !import("rtt_rospack") ||
         !import("rtt_actionlib") ||
-        !import("common_behavior") ||
+        !import("subsystem_common") ||
         !import("conman") ||
         !import("rtt_diagnostic_msgs") ||
         !import("eigen_typekit"))
@@ -805,9 +805,9 @@ bool SubsystemDeployer::initializeSubsystem(const std::string& master_package_na
         Logger::log() << Logger::Info << "master_component port[" << i << "]: " << master_port_names[i] << Logger::endl;
     }
 
-    master_service_ = master_component_->getProvider<common_behavior::MasterServiceRequester >("master");
+    master_service_ = master_component_->getProvider<subsystem_common::MasterServiceRequester >("master");
     if (!master_service_) {
-        RTT::log(RTT::Error) << "Unable to load common_behavior::MasterService from master_component" << RTT::endlog();
+        RTT::log(RTT::Error) << "Unable to load subsystem_common::MasterService from master_component" << RTT::endlog();
         return false;
     }
 

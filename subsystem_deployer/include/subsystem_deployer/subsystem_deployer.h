@@ -33,8 +33,8 @@
 #include <rtt/RTT.hpp>
 #include <boost/shared_ptr.hpp>
 #include <ocl/DeploymentComponent.hpp>
-#include "common_behavior/master_service_requester.h"
-#include "common_behavior/master_service.h"
+#include "subsystem_common/master_service_requester.h"
+#include "subsystem_common/master_service.h"
 
 class SubsystemDeployerRosServiceBase {};
 
@@ -55,10 +55,10 @@ public:
 
     bool configure(int rt_prio=0);
 
-    const std::vector<common_behavior::InputBufferInfo >& getLowerInputBuffers() const;
-    const std::vector<common_behavior::InputBufferInfo >& getUpperInputBuffers() const;
-    const std::vector<common_behavior::OutputBufferInfo >& getLowerOutputBuffers() const;
-    const std::vector<common_behavior::OutputBufferInfo >& getUpperOutputBuffers() const;
+    const std::vector<subsystem_common::InputBufferInfo >& getLowerInputBuffers() const;
+    const std::vector<subsystem_common::InputBufferInfo >& getUpperInputBuffers() const;
+    const std::vector<subsystem_common::OutputBufferInfo >& getLowerOutputBuffers() const;
+    const std::vector<subsystem_common::OutputBufferInfo >& getUpperOutputBuffers() const;
 
     const std::string& getChannelName(const std::string& alias) const;
 
@@ -80,10 +80,10 @@ private:
     bool connectPorts(const std::string& from, const std::string& to, const RTT::ConnPolicy& conn);
     bool connectionExists(const std::string& from, const std::string& to) const;
 
-    bool deployBufferSplitComponent(const common_behavior::BufferInfo& buf_info);
-    bool deployBufferConcateComponent(const common_behavior::BufferInfo& buf_info);
-    bool createInputBuffers(const std::vector<common_behavior::InputBufferInfo >& buffers);
-    bool createOutputBuffers(const std::vector<common_behavior::OutputBufferInfo >& buffers);
+    bool deployBufferSplitComponent(const subsystem_common::BufferInfo& buf_info);
+    bool deployBufferConcateComponent(const subsystem_common::BufferInfo& buf_info);
+    bool createInputBuffers(const std::vector<subsystem_common::InputBufferInfo >& buffers);
+    bool createOutputBuffers(const std::vector<subsystem_common::OutputBufferInfo >& buffers);
     bool isInputPort(const std::string &path) const;
     bool isOutputPort(const std::string &path) const;
     bool isSubsystemBuffer(const std::string& port_name) const;
@@ -112,17 +112,17 @@ private:
 
     boost::shared_ptr<OCL::DeploymentComponent > dc_;
     RTT::OperationCaller<bool(const std::string&)> ros_import_;
-    boost::shared_ptr<common_behavior::MasterServiceRequester > master_service_;
+    boost::shared_ptr<subsystem_common::MasterServiceRequester > master_service_;
 
     std::vector<RTT::TaskContext* > converter_components_;
 
     std::vector<RTT::TaskContext* > buffer_split_components_;
     std::vector<RTT::TaskContext* > buffer_concate_components_;
 
-    std::vector<common_behavior::InputBufferInfo > lowerInputBuffers_;
-    std::vector<common_behavior::InputBufferInfo > upperInputBuffers_;
-    std::vector<common_behavior::OutputBufferInfo > lowerOutputBuffers_;
-    std::vector<common_behavior::OutputBufferInfo > upperOutputBuffers_;
+    std::vector<subsystem_common::InputBufferInfo > lowerInputBuffers_;
+    std::vector<subsystem_common::InputBufferInfo > upperInputBuffers_;
+    std::vector<subsystem_common::OutputBufferInfo > lowerOutputBuffers_;
+    std::vector<subsystem_common::OutputBufferInfo > upperOutputBuffers_;
 
     boost::shared_ptr<SubsystemDeployerRosServiceBase > ros_service;
 

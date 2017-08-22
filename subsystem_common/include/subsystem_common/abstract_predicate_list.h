@@ -25,44 +25,25 @@
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef COMMON_BEHAVIOR_BUFFER_INFO_H_
-#define COMMON_BEHAVIOR_BUFFER_INFO_H_
+#ifndef SUBSYSTEM_COMMON_ABSTRACT_PREDICATE_LIST_H__
+#define SUBSYSTEM_COMMON_ABSTRACT_PREDICATE_LIST_H__
 
-namespace common_behavior {
+#include <boost/shared_ptr.hpp>
 
-class BufferInfo {
+namespace subsystem_common {
+
+class PredicateList {
 public:
-    BufferInfo( const std::string& interface_type,
-                const std::string& interface_alias)
-        : interface_alias_(interface_alias)
-        , interface_type_(interface_type) {
-    }
+    bool IN_ERROR;
+    bool CURRENT_BEHAVIOR_OK;
 
-    // the prefix used to generate interface classes with macro
-    // ORO_LIST_INTERFACE_COMPONENTS
-    std::string interface_alias_;
-    std::string interface_type_;
+    virtual PredicateList& operator=(const PredicateList& arg) = 0;
 };
 
-class InputBufferInfo : public BufferInfo {
-public:
-    InputBufferInfo(    const std::string& interface_type,
-                        const std::string& interface_alias)
+typedef boost::shared_ptr<PredicateList > PredicateListPtr;
+typedef boost::shared_ptr<const PredicateList > PredicateListConstPtr;
 
-        : BufferInfo(interface_type, interface_alias)
-    {
-    }
-};
+};  // namespace subsystem_common
 
-class OutputBufferInfo : public BufferInfo {
-public:
-    OutputBufferInfo(   const std::string& interface_type,
-                        const std::string& interface_alias)
-        : BufferInfo(interface_type, interface_alias) {
-    }
-};
-
-}   // namespace common_behavior
-
-#endif  // COMMON_BEHAVIOR_BUFFER_INFO_H_
+#endif  // SUBSYSTEM_COMMON_ABSTRACT_PREDICATE_LIST_H__
 

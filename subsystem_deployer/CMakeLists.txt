@@ -7,7 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   rtt_roscomm
   kdl_conversions
   cmake_modules
-  common_behavior
+  subsystem_common
   subsystem_msgs
   )
 
@@ -50,7 +50,7 @@ target_link_libraries( deployer ${OROCOS-RTT_LIBRARIES} ${USE_OROCOS_LIBRARIES} 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES subsystem_deployer
-  CATKIN_DEPENDS common_behavior subsystem_msgs
+  CATKIN_DEPENDS subsystem_common subsystem_msgs
 )
 
 

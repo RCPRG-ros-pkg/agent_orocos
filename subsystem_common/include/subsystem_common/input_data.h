@@ -25,25 +25,31 @@
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __ABSTRACT_PREDICATE_LIST_H__
-#define __ABSTRACT_PREDICATE_LIST_H__
+#ifndef SUBSYSTEM_COMMON_INPUT_DATA_H__
+#define SUBSYSTEM_COMMON_INPUT_DATA_H__
 
 #include <boost/shared_ptr.hpp>
 
-namespace common_behavior {
+namespace subsystem_common {
 
-class PredicateList {
+class BufferGroup {
 public:
-    bool IN_ERROR;
-    bool CURRENT_BEHAVIOR_OK;
-
-    virtual PredicateList& operator=(const PredicateList& arg) = 0;
+    double min_period;
+    double first_timeout;
+    double first_timeout_sim;
+    double next_timeout;
+    size_t id;
 };
 
-typedef boost::shared_ptr<PredicateList > PredicateListPtr;
-typedef boost::shared_ptr<const PredicateList > PredicateListConstPtr;
+class InputData {
+public:
 
-};  // namespace common_behavior
+};
 
-#endif  // __ABSTRACT_PREDICATE_LIST_H__
+typedef boost::shared_ptr<InputData > InputDataPtr;
+typedef boost::shared_ptr<const InputData > InputDataConstPtr;
+
+};  // namespace subsystem_common
+
+#endif  // SUBSYSTEM_COMMON_INPUT_DATA_H__
 

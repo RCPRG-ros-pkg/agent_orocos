@@ -25,18 +25,18 @@
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef COMMON_BEHAVIOR_MASTER_SERVICE_REQUESTER_H_
-#define COMMON_BEHAVIOR_MASTER_SERVICE_REQUESTER_H_
+#ifndef SUBSYSTEM_COMMON_MASTER_SERVICE_REQUESTER_H_
+#define SUBSYSTEM_COMMON_MASTER_SERVICE_REQUESTER_H_
 
-#include "common_behavior/input_data.h"
-#include "common_behavior/buffer_info.h"
-#include "common_behavior/abstract_predicate_list.h"
+#include "subsystem_common/input_data.h"
+#include "subsystem_common/buffer_info.h"
+#include "subsystem_common/abstract_predicate_list.h"
 
 #include <string>
 
 #include "rtt/RTT.hpp"
 
-namespace common_behavior {
+namespace subsystem_common {
 
 class MasterServiceRequester : public RTT::ServiceRequester {
  public:
@@ -44,10 +44,9 @@ class MasterServiceRequester : public RTT::ServiceRequester {
     : RTT::ServiceRequester("master", owner)
     , configureBuffers("configureBuffers")
     , cleanupBuffers("cleanupBuffers")
-    , initBuffersData("initBuffersData")
     , getBuffers("getBuffers")
     , writePorts("writePorts")
-    , getDataSample("getDataSample")
+    , allocateBuffersData("allocateBuffersData")
     , getLowerInputBuffers("getLowerInputBuffers")
     , getUpperInputBuffers("getUpperInputBuffers")
     , getLowerOutputBuffers("getLowerOutputBuffers")
@@ -70,10 +69,9 @@ class MasterServiceRequester : public RTT::ServiceRequester {
     this->addOperationCaller(configureBuffers);
     this->addOperationCaller(cleanupBuffers);
 
-    this->addOperationCaller(initBuffersData);
     this->addOperationCaller(getBuffers);
     this->addOperationCaller(writePorts);
-    this->addOperationCaller(getDataSample);
+    this->addOperationCaller(allocateBuffersData);
 
     this->addOperationCaller(getLowerInputBuffers);
     this->addOperationCaller(getUpperInputBuffers);
@@ -105,10 +103,9 @@ class MasterServiceRequester : public RTT::ServiceRequester {
   RTT::OperationCaller<void()> cleanupBuffers;
 
   // OROCOS ports operations
-  RTT::OperationCaller<void (InputDataPtr&)> initBuffersData;
   RTT::OperationCaller<void(InputDataPtr&)> getBuffers;
   RTT::OperationCaller<void (InputDataPtr&)> writePorts;
-  RTT::OperationCaller<InputDataPtr()> getDataSample;
+  RTT::OperationCaller<InputDataPtr()> allocateBuffersData;
 
   // subsystem buffers
   RTT::OperationCaller<void(std::vector<InputBufferInfo >&)> getLowerInputBuffers;
@@ -137,7 +134,7 @@ class MasterServiceRequester : public RTT::ServiceRequester {
 
   RTT::OperationCaller<const std::vector<std::string >&(int) > getRunningComponentsInState;
 };
-}   // namespace common_behavior
+}   // namespace subsystem_common
 
-#endif  // COMMON_BEHAVIOR_MASTER_SERVICE_REQUESTER_H_
+#endif  // SUBSYSTEM_COMMON_MASTER_SERVICE_REQUESTER_H_
 

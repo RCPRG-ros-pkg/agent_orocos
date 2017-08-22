@@ -37,9 +37,9 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("#ifndef " + header_name + "\n")
     s.write("#define " + header_name + "\n\n")
 
-    s.write("#include \"common_behavior/input_data.h\"\n")
+    s.write("#include \"subsystem_common/input_data.h\"\n")
     s.write("#include <rtt/RTT.hpp>\n")
-    s.write("#include \"common_behavior/abstract_predicate_list.h\"\n\n")
+    s.write("#include \"subsystem_common/abstract_predicate_list.h\"\n\n")
 
 
     for p_in in sd.buffers_in:
@@ -51,7 +51,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
     # class InputData
     #
     s.write("// Data structure used in predicates.\n//It contains data from all subsystem input buffers.\n")
-    s.write("class InputData : public common_behavior::InputData {\n")
+    s.write("class InputData : public subsystem_common::InputData {\n")
     s.write("public:\n")
 
     for p_in in sd.buffers_in:
@@ -67,12 +67,12 @@ def generate_boost_serialization(package, port_def, output_cpp):
     # class PredicateList
     #
 
-    s.write("class PredicateList : public common_behavior::PredicateList {\n")
+    s.write("class PredicateList : public subsystem_common::PredicateList {\n")
     s.write("public:\n")
     for pred in sd.predicates:
         s.write("  bool " + pred + ";\n")
 
-    s.write("\n  virtual common_behavior::PredicateList& operator=(const common_behavior::PredicateList& arg);\n")
+    s.write("\n  virtual subsystem_common::PredicateList& operator=(const subsystem_common::PredicateList& arg);\n")
 
     s.write("};\n\n")
 

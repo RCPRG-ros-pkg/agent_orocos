@@ -25,8 +25,8 @@
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef COMMON_BEHAVIOR_ABSTRACT_PORT_CONVERTER_H__
-#define COMMON_BEHAVIOR_ABSTRACT_PORT_CONVERTER_H__
+#ifndef SUBSYSTEM_COMMON_ABSTRACT_PORT_CONVERTER_H__
+#define SUBSYSTEM_COMMON_ABSTRACT_PORT_CONVERTER_H__
 
 #include <map>
 #include <vector>
@@ -35,7 +35,7 @@
 #include "rtt/Component.hpp"
 #include "rtt/RTT.hpp"
 
-namespace common_behavior {
+namespace subsystem_common {
 
 class ConverterBase {
 public:
@@ -180,7 +180,7 @@ public:
     bool initialize() {
         RTT::OutputPort<TYPE_FROM > port_from;
         RTT::InputPort<TYPE_TO > port_to;
-        converter_ = std::dynamic_pointer_cast<Converter<TYPE_FROM, TYPE_TO > >( std::shared_ptr<ConverterBase >(common_behavior::PortConverterFactory::Instance()->createConverter(&port_from, &port_to)));
+        converter_ = std::dynamic_pointer_cast<Converter<TYPE_FROM, TYPE_TO > >( std::shared_ptr<ConverterBase >(subsystem_common::PortConverterFactory::Instance()->createConverter(&port_from, &port_to)));
         return converter_ != NULL;
     }
 
@@ -249,11 +249,11 @@ private:
 #define LITERAL_port_converter_component_name__(X) Component##X
 #define EXPAND_port_converter_component_name_(X) LITERAL_port_converter_component_name__(X)
 
-#define REGISTER_PORT_CONVERTER( CONVERTER_CLASS ) static common_behavior::PortConverterRegistrar<CONVERTER_CLASS > EXPAND_registrar_port_converter_(__LINE__)("Component"#CONVERTER_CLASS);\
- typedef common_behavior::ConverterComponent<CONVERTER_CLASS > EXPAND_port_converter_component_name_(CONVERTER_CLASS);\
+#define REGISTER_PORT_CONVERTER( CONVERTER_CLASS ) static subsystem_common::PortConverterRegistrar<CONVERTER_CLASS > EXPAND_registrar_port_converter_(__LINE__)("Component"#CONVERTER_CLASS);\
+ typedef subsystem_common::ConverterComponent<CONVERTER_CLASS > EXPAND_port_converter_component_name_(CONVERTER_CLASS);\
  ORO_LIST_COMPONENT_TYPE(EXPAND_port_converter_component_name_(CONVERTER_CLASS));
 
-};  // namespace common_behavior
+};  // namespace subsystem_common
 
-#endif  // COMMON_BEHAVIOR_ABSTRACT_PORT_CONVERTER_H__
+#endif  // SUBSYSTEM_COMMON_ABSTRACT_PORT_CONVERTER_H__
 

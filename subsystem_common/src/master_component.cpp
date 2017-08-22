@@ -41,9 +41,9 @@
 #include <string>
 #include <pthread.h>
 
-#include "common_behavior/input_data.h"
-#include "common_behavior/master_service_requester.h"
-#include "common_behavior/master_service.h"
+#include "subsystem_common/input_data.h"
+#include "subsystem_common/master_service_requester.h"
+#include "subsystem_common/master_service.h"
 
 using namespace RTT;
 
@@ -53,7 +53,7 @@ public:
     int id_;
     RTT::os::TimeService::nsecs time_;
     Reason reason_;
-    common_behavior::PredicateListPtr pred_;
+    subsystem_common::PredicateListPtr pred_;
 
     static const std::string& getReasonStr(Reason r) {
         static const std::string inv("INV");
@@ -82,7 +82,7 @@ public:
         : idx_(0)
     {}
 
-    void addBehaviorSwitch(int new_behavior_id, RTT::os::TimeService::nsecs time, DiagBehaviorSwitch::Reason reason, common_behavior::PredicateListConstPtr pred = common_behavior::PredicateListConstPtr()) {
+    void addBehaviorSwitch(int new_behavior_id, RTT::os::TimeService::nsecs time, DiagBehaviorSwitch::Reason reason, subsystem_common::PredicateListConstPtr pred = subsystem_common::PredicateListConstPtr()) {
         if (h_.size() == 0) {
             return;
         }
@@ -95,7 +95,7 @@ public:
         idx_ = (idx_+1) % h_.size();
     }
 
-    void setSize(size_t size, RTT::OperationCaller<common_behavior::PredicateListPtr()> common_behavior::MasterServiceRequester::*func, common_behavior::MasterServiceRequester& a) {
+    void setSize(size_t size, RTT::OperationCaller<subsystem_common::PredicateListPtr()> subsystem_common::MasterServiceRequester::*func, subsystem_common::MasterServiceRequester& a) {
         h_.resize(size);
         for (int i = 0; i < h_.size(); ++i) {
             h_[i].id_ = -1;
@@ -172,11 +172,11 @@ private:
     RTT::base::DataObjectLockFree<DiagBehaviorSwitchHistory > diag_bs_sync_;
     DiagBehaviorSwitchHistory diag_ss_rt_;
 
-    boost::shared_ptr<common_behavior::MasterServiceRequester > master_service_;
+    boost::shared_ptr<subsystem_common::MasterServiceRequester > master_service_;
 
-    boost::shared_ptr<common_behavior::InputData > in_data_;
+    boost::shared_ptr<subsystem_common::InputData > in_data_;
 
-    common_behavior::PredicateListPtr predicate_list_;
+    subsystem_common::PredicateListPtr predicate_list_;
 
     RTT::Seconds last_exec_time_, last_exec_period_;
     RTT::os::TimeService::nsecs last_update_time_;
@@ -332,9 +332,9 @@ void MasterComponent::calculateConflictingComponents() {
 bool MasterComponent::configureHook() {
     Logger::In in("MasterComponent::configureHook");
 
-    master_service_ = this->getProvider<common_behavior::MasterServiceRequester >("master");
+    master_service_ = this->getProvider<subsystem_common::MasterServiceRequester >("master");
     if (!master_service_) {
-        RTT::log(RTT::Error) << "Unable to load common_behavior::MasterService" << RTT::endlog();
+        RTT::log(RTT::Error) << "Unable to load subsystem_common::MasterService" << RTT::endlog();
         return false;
     }
 
@@ -370,7 +370,7 @@ bool MasterComponent::configureHook() {
         scheme_peers_const_.push_back( scheme_->getPeer(scheme_peers_names[pi]) );
     }
 
-    diag_ss_rt_.setSize(behavior_switch_history_length_, &common_behavior::MasterServiceRequester::allocatePredicateList, *master_service_);
+    diag_ss_rt_.setSize(behavior_switch_history_length_, &subsystem_common::MasterServiceRequester::allocatePredicateList, *master_service_);
 
     diag_bs_sync_.data_sample(diag_ss_rt_);
     diag_bs_sync_.Set(diag_ss_rt_);
@@ -476,7 +476,7 @@ bool MasterComponent::configureHook() {
         addGraphConfiguration_(i, vec_stopped, vec_running);
     }
 
-    in_data_ = master_service_->getDataSample();
+    in_data_ = master_service_->allocateBuffersData();
     if (!in_data_) {
         RTT::log(RTT::Error) << "Unable to get InputData sample" << RTT::endlog();
         return false;
@@ -551,8 +551,6 @@ void MasterComponent::updateHook() {
     // Compute statistics describing how often update is being called
     last_exec_period_ = time - last_exec_time_;
     last_exec_time_ = time;
-
-    master_service_->initBuffersData(in_data_);
 
     master_service_->getBuffers(in_data_);
     counter_++;
