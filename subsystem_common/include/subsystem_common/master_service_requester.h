@@ -31,6 +31,8 @@
 #include "subsystem_common/input_data.h"
 #include "subsystem_common/buffer_info.h"
 #include "subsystem_common/abstract_predicate_list.h"
+#include "subsystem_common/abstract_state.h"
+#include "subsystem_common/abstract_behavior.h"
 
 #include <string>
 
@@ -52,19 +54,14 @@ class MasterServiceRequester : public RTT::ServiceRequester {
     , getLowerOutputBuffers("getLowerOutputBuffers")
     , getUpperOutputBuffers("getUpperOutputBuffers")
     , getBehaviors("getBehaviors")
-    , getStateName("getStateName")
-    , getStatesCount("getStatesCount")
-    , getInitialState("getInitialState")
+    , getStates("getStates")
+    , getInitialStateIndex("getInitialStateIndex")
     , allocatePredicateList("allocatePredicateList")
     , calculatePredicates("calculatePredicates")
     , getPredicatesStr("getPredicatesStr")
     , iterationEnd("iterationEnd")
     , bufferGroupRead("bufferGroupRead")
-    , checkErrorCondition("checkErrorCondition")
-    , checkStopCondition("checkStopCondition")
-    , getNextState("getNextState")
     , getStateBufferGroup("getStateBufferGroup")
-    , getRunningComponentsInState("getRunningComponentsInState")
   {
     this->addOperationCaller(configureBuffers);
     this->addOperationCaller(cleanupBuffers);
@@ -79,9 +76,8 @@ class MasterServiceRequester : public RTT::ServiceRequester {
     this->addOperationCaller(getUpperOutputBuffers);
 
     this->addOperationCaller(getBehaviors);
-    this->addOperationCaller(getStateName);
-    this->addOperationCaller(getStatesCount);
-    this->addOperationCaller(getInitialState);
+    this->addOperationCaller(getStates);
+    this->addOperationCaller(getInitialStateIndex);
 
     this->addOperationCaller(allocatePredicateList);
     this->addOperationCaller(calculatePredicates);
@@ -91,12 +87,7 @@ class MasterServiceRequester : public RTT::ServiceRequester {
 
     this->addOperationCaller(bufferGroupRead);
 
-    this->addOperationCaller(checkErrorCondition);
-    this->addOperationCaller(checkStopCondition);
-    this->addOperationCaller(getNextState);
     this->addOperationCaller(getStateBufferGroup);
-
-    this->addOperationCaller(getRunningComponentsInState);
   }
 
   RTT::OperationCaller<bool()> configureBuffers;
@@ -114,10 +105,9 @@ class MasterServiceRequester : public RTT::ServiceRequester {
   RTT::OperationCaller<void(std::vector<OutputBufferInfo >&)> getUpperOutputBuffers;
 
   // FSM parameters
-  RTT::OperationCaller<std::vector<std::string >()> getBehaviors;
-  RTT::OperationCaller<const std::string&(int)> getStateName;
-  RTT::OperationCaller<int()> getStatesCount;
-  RTT::OperationCaller<std::string()> getInitialState;
+  RTT::OperationCaller<const std::vector<const BehaviorBase* >&() > getBehaviors;
+  RTT::OperationCaller<const std::vector<const StateBase* >&() > getStates;
+  RTT::OperationCaller<int()> getInitialStateIndex;
 
   RTT::OperationCaller<PredicateListPtr() > allocatePredicateList;
   RTT::OperationCaller<void(const InputDataConstPtr&, const std::vector<const RTT::TaskContext*>&, PredicateListPtr&) > calculatePredicates;
@@ -127,12 +117,7 @@ class MasterServiceRequester : public RTT::ServiceRequester {
 
   RTT::OperationCaller<bool(size_t, double)> bufferGroupRead;
 
-  RTT::OperationCaller<bool(int, const PredicateListConstPtr&) > checkErrorCondition;
-  RTT::OperationCaller<bool(int, const PredicateListConstPtr&) > checkStopCondition;
-  RTT::OperationCaller<int(int, const PredicateListConstPtr&) > getNextState;
   RTT::OperationCaller<const BufferGroup&(int) > getStateBufferGroup;
-
-  RTT::OperationCaller<const std::vector<std::string >&(int) > getRunningComponentsInState;
 };
 }   // namespace subsystem_common
 

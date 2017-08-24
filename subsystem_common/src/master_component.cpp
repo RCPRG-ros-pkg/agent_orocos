@@ -247,7 +247,7 @@ std::string MasterComponent::getDiag() {
 
         std::string behavior_name;
         if (s.id_ >= 0) {
-            behavior_name = master_service_->getStateName(s.id_);
+            behavior_name = master_service_->getStates()[s.id_]->getName();
         }
         else {
             behavior_name = "INV_BEH";
@@ -349,19 +349,13 @@ bool MasterComponent::configureHook() {
         return false;
     }
 
-    Logger::log() << Logger::Info << "initial state: " << master_service_->getInitialState() << Logger::endl;
+    int initial_state_index = master_service_->getInitialStateIndex();
+    const std::vector<const subsystem_common::StateBase* >& states = master_service_->getStates();
+    const std::vector<const subsystem_common::BehaviorBase* >& behaviors = master_service_->getBehaviors();
 
-    current_state_id_ = -1;
-    for (int i = 0; i < master_service_->getStatesCount(); ++i) {
-        if (master_service_->getStateName(i) == master_service_->getInitialState()) {
-            current_state_id_ = i;
-        }
-    }
+    Logger::log() << Logger::Info << "initial state idx: " << master_service_->getInitialStateIndex() << ", name: " << states[initial_state_index]->getName() << Logger::endl;
 
-    if (!current_state_id_ < 0) {
-        Logger::log() << Logger::Error << "could not select initial state: " << master_service_->getInitialState() << Logger::endl;
-        return false;
-    }
+    current_state_id_ = initial_state_index;
 
     // retrieve the vector of peers of conman scheme
     TaskContext::PeerList scheme_peers_names = scheme_->getPeerList();
@@ -384,19 +378,25 @@ bool MasterComponent::configureHook() {
     hasBlock_ =  RTT::OperationCaller<bool(const std::string &)>(
         hasBlockOp, scheme_->engine());
 
-
+    std::vector<std::set<std::string > > running_components_in_state;
     // get names of all components that are needed for all behaviors
-    for (int i = 0; i < master_service_->getStatesCount(); ++i) {
-        const std::vector<std::string >& comp_vec = master_service_->getRunningComponentsInState(i);
-        for (int j = 0; j < comp_vec.size(); ++j) {
-            if (hasBlock_( comp_vec[j] )) {
-                switchable_components_.insert( comp_vec[j] );
+    for (int i = 0; i < states.size(); ++i) {
+        std::set<std::string > rc_in_state;
+        const std::vector<int >& behavior_indices = states[i]->getBehaviorIndices();
+        for (int j = 0; j < behavior_indices.size(); ++j) {
+            const std::vector<std::string >& running_components = behaviors[behavior_indices[j]]->getRunningComponents();
+            rc_in_state.insert(running_components.begin(), running_components.end());            
+        }
+        for (std::set<std::string >::const_iterator it = rc_in_state.begin(); it != rc_in_state.end(); ++it) {
+            if (hasBlock_( (*it) )) {
+                switchable_components_.insert( (*it) );
             }
             else {
-                Logger::log() << Logger::Error << "could not find a component \'" << comp_vec[j] << "\' in the scheme blocks list" << Logger::endl;
+                Logger::log() << Logger::Error << "could not find a component \'" << (*it) << "\' in the scheme blocks list" << Logger::endl;
                 return false;
             }
         }
+        running_components_in_state.push_back(rc_in_state);
     }
 
     std::string switchable_components_str;
@@ -433,8 +433,8 @@ bool MasterComponent::configureHook() {
         switchToConfigurationOp, scheme_->engine());
     Logger::log() << Logger::Info << "conman graph configurations:" << Logger::endl;
 
-    for (int i = 0; i < master_service_->getStatesCount(); ++i) {
-        const std::vector<std::string >& vec_running = master_service_->getRunningComponentsInState(i);
+    for (int i = 0; i < states.size(); ++i) {
+        const std::vector<std::string > vec_running(running_components_in_state[i].begin(), running_components_in_state[i].end());
 
         std::set<std::string > comp_beh_set = std::set<std::string >(vec_running.begin(), vec_running.end());
         std::vector<bool > comp_beh_vec;
@@ -575,18 +575,34 @@ void MasterComponent::updateHook() {
     master_service_->calculatePredicates(in_data_, scheme_peers_const_, predicate_list_);
     predicate_list_->CURRENT_BEHAVIOR_OK = graphOk;
 
-    bool err_cond = master_service_->checkErrorCondition(current_state_id_, predicate_list_);
+    const std::vector<const subsystem_common::StateBase* >& states = master_service_->getStates();
+    const std::vector<const subsystem_common::BehaviorBase* >& behaviors = master_service_->getBehaviors();
+
+    bool err_cond = false;
+    const std::vector<int >& behavior_indices = states[current_state_id_]->getBehaviorIndices();
+    for (int i = 0; i < behavior_indices.size(); ++i) {
+        if (behaviors[behavior_indices[i]]->checkErrorCondition(predicate_list_)) {
+            err_cond = true;
+            break;
+        }
+    }
+
     bool stop_cond = false;
 
     if (!err_cond) {
-        stop_cond = master_service_->checkStopCondition(current_state_id_, predicate_list_);
+        for (int i = 0; i < behavior_indices.size(); ++i) {
+            if (behaviors[behavior_indices[i]]->checkStopCondition(predicate_list_)) {
+                stop_cond = true;
+                break;
+            }
+        }
     }
 
     predicate_list_->IN_ERROR = err_cond;
     ros::Time time2 = rtt_rosclock::rtt_wall_now();
 
     if (stop_cond || err_cond) {
-        current_state_id_ = master_service_->getNextState(current_state_id_, predicate_list_);
+        current_state_id_ = states[current_state_id_]->calculateNextState(predicate_list_);
         if (current_state_id_ < 0) {
             Logger::log() << Logger::Error << "could not switch to new state: " << current_state_id_ << Logger::endl;
             diag_ss_rt_.addBehaviorSwitch(current_state_id_, now, (err_cond?DiagBehaviorSwitch::ERROR:DiagBehaviorSwitch::STOP), predicate_list_);

@@ -162,6 +162,14 @@ class SubsystemDefinition:
             state_id += 1
         return None
 
+    def getBehaviorId(self, behavior_name):
+        behavior_id = 0
+        for b in self.behaviors:
+            if b.name == behavior_name:
+                return behavior_id
+            behavior_id += 1
+        return None
+
     def getInitialStateName(self):
         return self.initial_state_name
 

@@ -304,15 +304,12 @@ void scanService(Service::shared_ptr sv)
 //                << Logger::endl;
         }
 
-/*
-// TODO
-        std::vector<std::string > b_names = master_service->getBehaviors();
-        for (int i = 0; i < b_names.size(); ++i) {
-            auto b_ptr = subsystem_common::BehaviorFactory::Instance()->Create( b_names[i] );
-            const std::vector<std::string >& r = b_ptr->getRunningComponents();
+        const std::vector<const subsystem_common::BehaviorBase* >& behaviors = master_service->getBehaviors();
+        for (int i = 0; i < behaviors.size(); ++i) {
+            const std::vector<std::string >& r = behaviors[i]->getRunningComponents();
 
             subsystem_msgs::BehaviorInfo bi;
-            bi.name = b_ptr->getShortName();
+            bi.name = behaviors[i]->getName();
             for (int j = 0; j < r.size(); ++j) {
                 bi.running_components.push_back( r[j] );
             }
@@ -322,7 +319,7 @@ void scanService(Service::shared_ptr sv)
 //                << bi.name
 //                << Logger::endl;
         }
-*/
+
 		res.is_initialized = d_.isInitialized();
 
 		// state machine information

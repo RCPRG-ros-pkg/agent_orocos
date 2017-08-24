@@ -32,6 +32,8 @@
 #include "subsystem_common/input_data.h"
 #include "subsystem_common/buffer_info.h"
 #include "subsystem_common/abstract_predicate_list.h"
+#include "subsystem_common/abstract_state.h"
+#include "subsystem_common/abstract_behavior.h"
 
 #include <rtt/RTT.hpp>
 #include <rtt/Service.hpp>
@@ -58,9 +60,8 @@ class MasterService: public RTT::Service {
     this->addOperation("getUpperOutputBuffers", &MasterService::getUpperOutputBuffers, this, RTT::ClientThread);
 
     this->addOperation("getBehaviors", &MasterService::getBehaviors, this, RTT::ClientThread);
-    this->addOperation("getStateName", &MasterService::getStateName, this, RTT::ClientThread);
-    this->addOperation("getStatesCount", &MasterService::getStatesCount, this, RTT::ClientThread);
-    this->addOperation("getInitialState", &MasterService::getInitialState, this, RTT::ClientThread);
+    this->addOperation("getStates", &MasterService::getStates, this, RTT::ClientThread);
+    this->addOperation("getInitialStateIndex", &MasterService::getInitialStateIndex, this, RTT::ClientThread);
 
     this->addOperation("allocatePredicateList", &MasterService::allocatePredicateList, this, RTT::ClientThread);
     this->addOperation("calculatePredicates", &MasterService::calculatePredicates, this, RTT::ClientThread);
@@ -70,12 +71,7 @@ class MasterService: public RTT::Service {
 
     this->addOperation("bufferGroupRead", &MasterService::bufferGroupRead, this, RTT::ClientThread);
 
-    this->addOperation("checkErrorCondition", &MasterService::checkErrorCondition, this, RTT::ClientThread);
-    this->addOperation("checkStopCondition", &MasterService::checkStopCondition, this, RTT::ClientThread);
-    this->addOperation("getNextState", &MasterService::getNextState, this, RTT::ClientThread);
     this->addOperation("getStateBufferGroup", &MasterService::getStateBufferGroup, this, RTT::ClientThread);
-
-    this->addOperation("getRunningComponentsInState", &MasterService::getRunningComponentsInState, this, RTT::ClientThread);
   }
 
   virtual bool configureBuffers() = 0;
@@ -93,10 +89,9 @@ class MasterService: public RTT::Service {
   virtual void getUpperOutputBuffers(std::vector<OutputBufferInfo >&) const = 0;
 
   // FSM parameters
-  virtual std::vector<std::string > getBehaviors() const = 0;
-  virtual const std::string& getStateName(int) const = 0;
-  virtual int getStatesCount() const = 0;
-  virtual std::string getInitialState() const = 0;
+  virtual const std::vector<const BehaviorBase* >& getBehaviors() const = 0;
+  virtual const std::vector<const StateBase* >& getStates() const = 0;
+  virtual int getInitialStateIndex() const = 0;
 
   virtual PredicateListPtr allocatePredicateList() = 0;
   virtual void calculatePredicates(const InputDataConstPtr&, const std::vector<const RTT::TaskContext*>&, PredicateListPtr&) const = 0;
@@ -108,12 +103,7 @@ class MasterService: public RTT::Service {
 
   virtual bool bufferGroupRead(size_t id, double timeout) = 0;
 
-  virtual bool checkErrorCondition(int, const PredicateListConstPtr&) const = 0;
-  virtual bool checkStopCondition(int, const PredicateListConstPtr&) const = 0;
-  virtual int getNextState(int, const PredicateListConstPtr&) const = 0;
   virtual const BufferGroup& getStateBufferGroup(int) const = 0;
-
-  virtual const std::vector<std::string >& getRunningComponentsInState(int) const = 0;
 };
 
 }   // namespace subsystem_common
