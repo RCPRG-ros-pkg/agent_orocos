@@ -116,7 +116,7 @@ class StateHistoryDialog(QDialog):
         self.tableWidget.setHorizontalHeader(hdr)
 
         self.initialized = False
-        item0 = QTableWidgetItem("behavior")
+        item0 = QTableWidgetItem("state")
         item1 = QTableWidgetItem("reason")
         item2 = QTableWidgetItem("time")
         self.tableWidget.setHorizontalHeaderItem (0, item0)

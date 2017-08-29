@@ -110,9 +110,9 @@ class SubsystemWidget(QWidget):
         self.dialogBehaviorGraph.show()
 
     @Slot()
-    def on_click_showBehaviorHistory(self):
+    def on_click_showStateHistory(self):
         #self.dialogBehaviorGraph.exec_()
-        self.dialogBehaviorHistory.show()
+        self.dialogStateHistory.show()
 
     @Slot()
     def on_click_showComponentsList(self):
@@ -164,8 +164,8 @@ class SubsystemWidget(QWidget):
         self.dialogBehaviorGraph = behavior_graph.BehaviorGraphDialog(self.subsystem_name, self)
         self.showBehaviorGraph.clicked.connect(self.on_click_showBehaviorGraph)
 
-        self.dialogBehaviorHistory = subsystem_state_history.StateHistoryDialog(self.subsystem_name, self)
-        self.showBehaviorHistory.clicked.connect(self.on_click_showBehaviorHistory)
+        self.dialogStateHistory = subsystem_state_history.StateHistoryDialog(self.subsystem_name, self)
+        self.showStateHistory.clicked.connect(self.on_click_showStateHistory)
 
         self.dialogComponents = subsystem_components.ComponentsDialog(self.subsystem_name, self)
         self.showComponentsList.clicked.connect(self.on_click_showComponentsList)
@@ -616,7 +616,7 @@ class SubsystemWidget(QWidget):
         mcd = self.parseMasterComponentDiag(self.state)
         if len(mcd[0]) > 0:
             self.SubsystemState.setText(mcd[0][0][0])
-            self.dialogBehaviorHistory.updateState(mcd)
+            self.dialogStateHistory.updateState(mcd)
             self.PeriodWall.setText(mcd[2] + ', ' + str(mcd[3]*1000.0) + 'ms, ' + str(mcd[4]*1000.0) + 'ms, ' + str(mcd[5]*1000.0) + 'ms, ' + str(mcd[6]*1000.0) + 'ms, ' + str(mcd[7]*1000.0) + 'ms')
         else:
             self.SubsystemState.setText("unknown")
