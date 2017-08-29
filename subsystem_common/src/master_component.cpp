@@ -47,7 +47,7 @@
 
 using namespace RTT;
 
-class DiagBehaviorSwitch {
+class DiagStateSwitch {
 public:
     enum Reason {INVALID, INIT, STOP, ERROR};
     int id_;
@@ -76,17 +76,17 @@ public:
     }
 };
 
-class DiagBehaviorSwitchHistory {
+class DiagStateSwitchHistory {
 public:
-    DiagBehaviorSwitchHistory()
+    DiagStateSwitchHistory()
         : idx_(0)
     {}
 
-    void addBehaviorSwitch(int new_behavior_id, RTT::os::TimeService::nsecs time, DiagBehaviorSwitch::Reason reason, subsystem_common::PredicateListConstPtr pred = subsystem_common::PredicateListConstPtr()) {
+    void addStateSwitch(int new_state_id, RTT::os::TimeService::nsecs time, DiagStateSwitch::Reason reason, subsystem_common::PredicateListConstPtr pred = subsystem_common::PredicateListConstPtr()) {
         if (h_.size() == 0) {
             return;
         }
-        h_[idx_].id_ = new_behavior_id;
+        h_[idx_].id_ = new_state_id;
         h_[idx_].time_ = time;
         h_[idx_].reason_ = reason;
         if (pred) {
@@ -99,18 +99,18 @@ public:
         h_.resize(size);
         for (int i = 0; i < h_.size(); ++i) {
             h_[i].id_ = -1;
-            h_[i].reason_ = DiagBehaviorSwitch::INVALID;
+            h_[i].reason_ = DiagStateSwitch::INVALID;
             h_[i].pred_ = (a.*func)();
         }
         idx_ = 0;
     }
 
-    bool getBehaviorSwitchHistory(int idx, DiagBehaviorSwitch &ss) const {
+    bool getStateSwitchHistory(int idx, DiagStateSwitch &ss) const {
         if (idx >= h_.size() || h_.size() == 0) {
             return false;
         }
         int i = (idx_-idx-1+h_.size()*2) % h_.size();
-        if (h_[i].reason_ == DiagBehaviorSwitch::INVALID) {
+        if (h_[i].reason_ == DiagStateSwitch::INVALID) {
             return false;
         }
         ss = h_[i];
@@ -119,7 +119,7 @@ public:
 
 private:
 
-    std::vector<DiagBehaviorSwitch> h_;
+    std::vector<DiagStateSwitch> h_;
     int idx_;
 };
 
@@ -145,10 +145,10 @@ public:
 
 private:
     void calculateConflictingComponents();
-    void printCurrentBehaviors() const;
-    bool isCurrentBehavior(const std::string& behavior_name) const;
-    bool isCurrentBehavior(int behavior_idx) const;
-    int currentBehaviorsCount() const;
+    // void printCurrentBehaviors() const;
+    // bool isCurrentBehavior(const std::string& behavior_name) const;
+    // bool isCurrentBehavior(int behavior_idx) const;
+    // int currentBehaviorsCount() const;
     bool isGraphOk() const;
 
     int current_state_id_;
@@ -169,8 +169,8 @@ private:
 
     bool first_step_;
 
-    RTT::base::DataObjectLockFree<DiagBehaviorSwitchHistory > diag_bs_sync_;
-    DiagBehaviorSwitchHistory diag_ss_rt_;
+    RTT::base::DataObjectLockFree<DiagStateSwitchHistory > diag_bs_sync_;
+    DiagStateSwitchHistory diag_ss_rt_;
 
     boost::shared_ptr<subsystem_common::MasterServiceRequester > master_service_;
 
@@ -182,7 +182,7 @@ private:
     RTT::os::TimeService::nsecs last_update_time_;
     RTT::os::TimeService::Seconds scheme_time_;
 
-    int behavior_switch_history_length_;
+    int state_switch_history_length_;
 
     std::set<std::pair<std::string, std::string > > conflicting_components_;
 
@@ -208,7 +208,7 @@ void MasterComponent::setThreadName(const std::string& thread_name) {
 
 MasterComponent::MasterComponent(const std::string &name)
     : TaskContext(name, PreOperational)
-    , behavior_switch_history_length_(5)
+    , state_switch_history_length_(5)
     , scheme_time_(0)
     , use_sim_time_(false)
 {
@@ -218,7 +218,7 @@ MasterComponent::MasterComponent(const std::string &name)
 
     this->addOperation("setThreadName", &MasterComponent::setThreadName, this, RTT::ClientThread);
 
-    addProperty("behavior_switch_history_length", behavior_switch_history_length_);
+    addProperty("state_switch_history_length", state_switch_history_length_);
 
     addProperty("use_sim_time", use_sim_time_);
 }
@@ -229,13 +229,13 @@ std::string MasterComponent::getDiag() {
     strs << "<mcd>";
     strs << "<h>";
 
-    DiagBehaviorSwitchHistory ss;
+    DiagStateSwitchHistory ss;
     diag_bs_sync_.Get(ss);
 
 
     for (int i = 0; ; ++i) {
-        DiagBehaviorSwitch s;
-        if (!ss.getBehaviorSwitchHistory(i, s)) {
+        DiagStateSwitch s;
+        if (!ss.getStateSwitchHistory(i, s)) {
             break;
         }
         RTT::os::TimeService::Seconds switch_interval = RTT::nsecs_to_Seconds(last_update_time_ - s.time_);
@@ -245,14 +245,14 @@ std::string MasterComponent::getDiag() {
             err_str = master_service_->getPredicatesStr(s.pred_);
         }
 
-        std::string behavior_name;
+        std::string state_name;
         if (s.id_ >= 0) {
-            behavior_name = master_service_->getStates()[s.id_]->getName();
+            state_name = master_service_->getStates()[s.id_]->getName();
         }
         else {
-            behavior_name = "INV_BEH";
+            state_name = "INV_BEH";
         }
-        strs << "<ss n=\"" << behavior_name << "\" r=\""
+        strs << "<ss n=\"" << state_name << "\" r=\""
              << s.getReasonStr() << "\" t=\"" << switch_interval << "\" e=\""
              << err_str << "\" />";
     }
@@ -364,7 +364,7 @@ bool MasterComponent::configureHook() {
         scheme_peers_const_.push_back( scheme_->getPeer(scheme_peers_names[pi]) );
     }
 
-    diag_ss_rt_.setSize(behavior_switch_history_length_, &subsystem_common::MasterServiceRequester::allocatePredicateList, *master_service_);
+    diag_ss_rt_.setSize(state_switch_history_length_, &subsystem_common::MasterServiceRequester::allocatePredicateList, *master_service_);
 
     diag_bs_sync_.data_sample(diag_ss_rt_);
     diag_bs_sync_.Set(diag_ss_rt_);
@@ -557,14 +557,14 @@ void MasterComponent::updateHook() {
 
     master_service_->writePorts(in_data_);
 
-    bool behavior_switch = false;
+    bool state_switch = false;
 
     bool graphOk = true;
     if (first_step_) {
         first_step_ = false;
-        behavior_switch = true;
+        state_switch = true;
 
-        diag_ss_rt_.addBehaviorSwitch(current_state_id_, now, DiagBehaviorSwitch::INIT);
+        diag_ss_rt_.addStateSwitch(current_state_id_, now, DiagStateSwitch::INIT);
         diag_bs_sync_.Set(diag_ss_rt_);
     }
     else {
@@ -605,16 +605,16 @@ void MasterComponent::updateHook() {
         current_state_id_ = states[current_state_id_]->calculateNextState(predicate_list_);
         if (current_state_id_ < 0) {
             Logger::log() << Logger::Error << "could not switch to new state: " << current_state_id_ << Logger::endl;
-            diag_ss_rt_.addBehaviorSwitch(current_state_id_, now, (err_cond?DiagBehaviorSwitch::ERROR:DiagBehaviorSwitch::STOP), predicate_list_);
+            diag_ss_rt_.addStateSwitch(current_state_id_, now, (err_cond?DiagStateSwitch::ERROR:DiagStateSwitch::STOP), predicate_list_);
             diag_bs_sync_.Set(diag_ss_rt_);
             error();
             return;
         }
 
-        diag_ss_rt_.addBehaviorSwitch(current_state_id_, now, (err_cond?DiagBehaviorSwitch::ERROR:DiagBehaviorSwitch::STOP), predicate_list_);
+        diag_ss_rt_.addStateSwitch(current_state_id_, now, (err_cond?DiagStateSwitch::ERROR:DiagStateSwitch::STOP), predicate_list_);
         diag_bs_sync_.Set(diag_ss_rt_);
 
-        behavior_switch = true;
+        state_switch = true;
     }
     ros::Time time3 = rtt_rosclock::rtt_wall_now();
 
@@ -622,7 +622,7 @@ void MasterComponent::updateHook() {
     // if the behavior has changed, reorganize the graph
     //
 
-    if (behavior_switch) {
+    if (state_switch) {
         if (use_sim_time_) {
             read_buffer_timeout_ = master_service_->getStateBufferGroup(current_state_id_).first_timeout_sim;
         }
