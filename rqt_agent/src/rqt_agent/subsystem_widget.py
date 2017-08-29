@@ -577,8 +577,11 @@ class SubsystemWidget(QWidget):
                 self.dialogStateMachineGraph.addGraph(graph_name, graph_str)
 
             self.dialogBehaviorGraph.showGraph("<all>")
-
+              
+            
+            
             self.dialogStateMachineGraph.showGraph("<all>")
+            
             self.graph_generated = True
 
         components_state = {}
