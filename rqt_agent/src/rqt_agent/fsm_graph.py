@@ -383,7 +383,7 @@ class StateMachineGraphDialog(QDialog):
     def exportClick(self):
         if not self.initialized:
             return
-        self.parent.exportGraphs()
+        self.parent.exportStateMachineGraphs()
 
     @Slot()
     def reset_viewClick(self):
