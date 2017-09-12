@@ -210,10 +210,6 @@ class StateMachineGraphDialog(QDialog):
                 break
 
     @Slot(int)
-    def graphSelected(self, index):
-        graph_name = self.comboBoxGraphs.itemText(index)
-        self.showGraph(graph_name)
-
     def __init__(self, subsystem_name, parent=None):
         super(StateMachineGraphDialog, self).__init__(parent)
 
@@ -238,8 +234,7 @@ class StateMachineGraphDialog(QDialog):
 
         self.prev_selected_connections = []
         self.comboBoxConnections.highlighted.connect(self.portSelected)
-        self.comboBoxGraphs.highlighted.connect(self.graphSelected)
-
+ 
         self.componentSelected(None)
         self.scene = {}
         self.graphicsView = None
@@ -261,8 +256,6 @@ class StateMachineGraphDialog(QDialog):
         self.initialized = True
 
     def addGraph(self, graph_name, graph_str):
-
-        self.comboBoxGraphs.addItem(graph_name)
 
         graph = graph_str.splitlines()
 
