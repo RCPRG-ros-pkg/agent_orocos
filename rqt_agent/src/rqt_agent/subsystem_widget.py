@@ -419,6 +419,8 @@ class SubsystemWidget(QWidget):
                 if unconnected:
                     # Tutaj tez trzeb bedzie latexa dodac
                     conn_tuple = (c_name, None)
+                    latex_name = None
+                    conn_set[conn_tuple] = [[c_name], [latex_name]]
 
             print "conn_set", conn_set
 
@@ -775,6 +777,9 @@ class SubsystemWidget(QWidget):
             
           
             gr = self.generateStateMachineGraph(False)
+            print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF gr \n\n"
+            print gr
+            print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF gr \n\n"
             dot = gr[0]
             in_read, in_write = os.pipe()
             os.write(in_write, dot)
@@ -817,12 +822,14 @@ class SubsystemWidget(QWidget):
                 self.subsystem_info = self._getSubsystemInfo()
             except rospy.ServiceException, e:
                 print "Service call failed: %s"%e
+            
+            print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF subsystem_info\n\n"
 
             if self.subsystem_info != None:
                 #print self.subsystem_info
                 print self.subsystem_info.state_machine
             
-            print "self.subsystem_info.state_machine print ended"
+            print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF subsystem_info\n\n"
 
 
             self.initialized = True
