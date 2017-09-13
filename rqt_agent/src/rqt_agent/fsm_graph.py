@@ -213,7 +213,7 @@ class StateMachineGraphDialog(QDialog):
         for comp_name in self.nodes:
             self.nodes[comp_name].setPen(getComponentPen('N'))
         
-        print "name:",name
+        # print "name:",name
             
         if name in self.nodes:
             self.nodes[name].setPen(getComponentPen('A'))

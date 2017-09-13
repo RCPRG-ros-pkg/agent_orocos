@@ -60,6 +60,14 @@ def getComponentBrush(state):
     elif state == 'X':    # exception
         b = QBrush(QColor(0,255,255))
     return b
+    
+def getComponentPen(state):
+    b = QPen(QColor(0,0,255)) # unconfigured/preoperational
+    if state == 'A':      # stopped
+        b = QPen(QBrush(QColor(255,0,0)), 5)
+    elif state == 'N':    # running
+        b = QPen(QBrush(QColor(0,0,0)), 1)
+    return b
 
 class GraphScene(QGraphicsScene):
     def __init__(self, rect):
@@ -206,7 +214,13 @@ class BehaviorGraphDialog(QDialog):
                     port_str += ', type:' + type_str
                     self.comboBoxConnections.addItem(port_str)
                 break
-
+        
+        for graph_name in self.nodes:
+            for comp_name in self.nodes[graph_name]:
+                self.nodes[graph_name][comp_name].setPen(getComponentPen('N'))
+            if name in self.nodes[graph_name]:
+                self.nodes[graph_name][name].setPen(getComponentPen('A'))
+        
     @Slot(int)
     def graphSelected(self, index):
         graph_name = self.comboBoxGraphs.itemText(index)
