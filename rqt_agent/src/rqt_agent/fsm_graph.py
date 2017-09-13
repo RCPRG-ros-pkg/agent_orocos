@@ -270,7 +270,6 @@ class StateMachineGraphDialog(QDialog):
 
         self.scene[graph_name] = GraphScene(QRectF(0, 0, self.scX(self.width), self.scY(self.height)))
 
-        self.nodes[graph_name] = {}
         self.edges[graph_name] = []
 
         for l in graph:
@@ -291,8 +290,8 @@ class StateMachineGraphDialog(QDialog):
                 x = self.tfX(items[2])
                 y = self.tfY(items[3])
 
-                self.nodes[graph_name][name] = self.scene[graph_name].addEllipse(x - w/2, y - h/2, w, h)
-                self.nodes[graph_name][name].setData(0, name)
+                self.nodes[name] = self.scene[graph_name].addEllipse(x - w/2, y - h/2, w, h)
+                self.nodes[name].setData(0, name)
                 text_item = self.scene[graph_name].addSimpleText(name)
                 br = text_item.boundingRect()
                 text_item.setPos(x - br.width()/2, y - br.height()/2)
@@ -420,8 +419,7 @@ class StateMachineGraphDialog(QDialog):
 
         if changed:
             self.components_state = components_state
-            for graph_name in self.nodes:
-                for comp_name in self.nodes[graph_name]:
-                    if comp_name in self.components_state:
-                        self.nodes[graph_name][comp_name].setBrush(getComponentBrush(self.components_state[comp_name]))
+            for comp_name in self.nodes:
+                if comp_name in self.components_state:
+                    self.nodes[comp_name].setBrush(getComponentBrush(self.components_state[comp_name]))
                         
