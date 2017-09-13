@@ -813,8 +813,7 @@ class SubsystemWidget(QWidget):
         #
         self.dialogComponents.updateState(components_state, components_diag_msgs)
         self.dialogBehaviorGraph.updateState(components_state)
-        self.dialogStateMachineGraph.updateState(components_state)
-
+        
         #rospy.wait_for_service('/' + name = '/getSubsystemInfo')
         if self.subsystem_info == None:
             try:
@@ -838,6 +837,7 @@ class SubsystemWidget(QWidget):
         if len(mcd[0]) > 0:
             self.SubsystemState.setText(mcd[0][0][0])
             self.dialogStateHistory.updateState(mcd)
+            self.dialogStateMachineGraph.updateState(mcd)
             self.PeriodWall.setText(mcd[2] + ', ' + str(mcd[3]*1000.0) + 'ms, ' + str(mcd[4]*1000.0) + 'ms, ' + str(mcd[5]*1000.0) + 'ms, ' + str(mcd[6]*1000.0) + 'ms, ' + str(mcd[7]*1000.0) + 'ms')
         else:
             self.SubsystemState.setText("unknown")

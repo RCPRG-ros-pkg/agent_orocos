@@ -53,12 +53,6 @@ def getComponentBrush(state):
         b = QBrush(QColor(255,255,255))
     elif state == 'R':    # running
         b = QBrush(QColor(0,255,0))
-    elif state == 'E':    # error
-        b = QBrush(QColor(255,0,0))
-    elif state == 'F':    # fatal error
-        b = QBrush(QColor(255,127,127))
-    elif state == 'X':    # exception
-        b = QBrush(QColor(0,255,255))
     return b
 
 class GraphScene(QGraphicsScene):
@@ -398,22 +392,16 @@ class StateMachineGraphDialog(QDialog):
         scaleFactor = 1.0/1.1
         self.graphicsView.scale(scaleFactor, scaleFactor)
 
-    def updateState(self, components_state):
+    def updateState(self, mcd):
         if not self.initialized:
             return
-
-        changed = False
-        if self.components_state == None:
-            changed = True
-        else:
-            for comp_name in self.components_state:
-                if self.components_state[comp_name] != components_state[comp_name]:
-                    changed = True
-                    break
-
-        if changed:
-            self.components_state = components_state
-            for comp_name in self.nodes:
-                if comp_name in self.components_state:
-                    self.nodes[comp_name].setBrush(getComponentBrush(self.components_state[comp_name]))
+        
+        active_state_name = mcd[0][0][0]
+        # print "active_state_name: ", active_state_name
+       
+        for comp_name in self.nodes:
+            if comp_name == active_state_name:
+                self.nodes[comp_name].setBrush(getComponentBrush('R'))
+            else:
+                self.nodes[comp_name].setBrush(getComponentBrush('S'))
                         
