@@ -242,15 +242,12 @@ class StateMachineGraphDialog(QDialog):
         self.edges = {}
 
     def showGraph(self, graph_name):
-        if not graph_name in self.scene:
-            print "could not show graph " + graph_name
-            return
 
         if not self.graphicsView:
             self.graphicsView = GraphView()
             self.verticalLayout.insertWidget(0, self.graphicsView)
 
-        self.graphicsView.setScene(self.scene[graph_name])
+        self.graphicsView.setScene(self.scene)
 
         self.graphicsView.comp_select_signal.connect(self.componentSelected)
         self.initialized = True
@@ -268,7 +265,7 @@ class StateMachineGraphDialog(QDialog):
         self.height = float(header[3])
         print "QGraphicsScene size:", self.width, self.height
 
-        self.scene[graph_name] = GraphScene(QRectF(0, 0, self.scX(self.width), self.scY(self.height)))
+        self.scene = GraphScene(QRectF(0, 0, self.scX(self.width), self.scY(self.height)))
 
         self.edges[graph_name] = []
 
@@ -290,9 +287,9 @@ class StateMachineGraphDialog(QDialog):
                 x = self.tfX(items[2])
                 y = self.tfY(items[3])
 
-                self.nodes[name] = self.scene[graph_name].addEllipse(x - w/2, y - h/2, w, h)
+                self.nodes[name] = self.scene.addEllipse(x - w/2, y - h/2, w, h)
                 self.nodes[name].setData(0, name)
-                text_item = self.scene[graph_name].addSimpleText(name)
+                text_item = self.scene.addSimpleText(name)
                 br = text_item.boundingRect()
                 text_item.setPos(x - br.width()/2, y - br.height()/2)
 
@@ -328,7 +325,7 @@ class StateMachineGraphDialog(QDialog):
                     control_points_idx = control_points_idx + 3
                     if control_points_idx >= len(line):
                         break
-                edge = self.scene[graph_name].addPath(path)
+                edge = self.scene.addPath(path)
                 edge.setData(0, (items[1], items[2]))
                 self.edges[graph_name].append(edge)
 
@@ -349,7 +346,7 @@ class StateMachineGraphDialog(QDialog):
 #                poly_path = QPainterPath()
 #                poly_path.addPolygon(poly)
 #                painter = QPainter()
-                self.scene[graph_name].addPolygon(poly)
+                self.scene.addPolygon(poly)
 
                 if label_text and label_pos:
                     if label_text[0] == "\"":
@@ -357,7 +354,7 @@ class StateMachineGraphDialog(QDialog):
                     if label_text[-1] == "\"":
                         label_text = label_text[:-1]
                     label_text = label_text.replace("\\n", "\n")
-                    label_item = self.scene[graph_name].addSimpleText(label_text)
+                    label_item = self.scene.addSimpleText(label_text)
                     br = label_item.boundingRect()
                     label_item.setPos(label_pos.x() - br.width()/2, label_pos.y() - br.height()/2)
 
