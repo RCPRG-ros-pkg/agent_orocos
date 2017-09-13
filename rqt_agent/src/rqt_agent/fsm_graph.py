@@ -240,7 +240,7 @@ class StateMachineGraphDialog(QDialog):
         self.nodes = {}
         self.edges = []
 
-    def showGraph(self, graph_name):
+    def showGraph(self):
 
         if not self.graphicsView:
             self.graphicsView = GraphView()
@@ -251,7 +251,7 @@ class StateMachineGraphDialog(QDialog):
         self.graphicsView.comp_select_signal.connect(self.componentSelected)
         self.initialized = True
 
-    def addGraph(self, graph_name, graph_str):
+    def addGraph(self, graph_str):
 
         graph = graph_str.splitlines()
 

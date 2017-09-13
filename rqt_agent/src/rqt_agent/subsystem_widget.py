@@ -791,9 +791,9 @@ class SubsystemWidget(QWidget):
             os.close(out_read)
             graph_str = graph_str.replace("\\\n", "")
 
-            self.dialogStateMachineGraph.addGraph("<all>", graph_str)
+            self.dialogStateMachineGraph.addGraph(graph_str)
             
-            self.dialogStateMachineGraph.showGraph("<all>")
+            self.dialogStateMachineGraph.showGraph()
             
         # end of state machine
             
