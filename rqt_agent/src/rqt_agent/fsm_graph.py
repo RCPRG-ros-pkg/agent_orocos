@@ -167,13 +167,12 @@ class StateMachineGraphDialog(QDialog):
         for conn in self.parent.all_connections:
             if (conn[0] == self.component_selected and conn[1] == self.selected_component_port_names[index]) or \
                 (conn[2] == self.component_selected and conn[3] == self.selected_component_port_names[index]):
-                for graph_name in self.edges:
-                    for e in self.edges[graph_name]:
-                        data = e.data(0)
-                        if (data[0] == conn[0] and data[1] == conn[2]) or \
-                            (data[0] == conn[2] and data[1] == conn[0]):
-                            e.setPen( QPen(QBrush(QColor(255,0,0)), 5) )
-                            self.prev_selected_connections.append(e)
+                for e in self.edges:
+                    data = e.data(0)
+                    if (data[0] == conn[0] and data[1] == conn[2]) or \
+                        (data[0] == conn[2] and data[1] == conn[0]):
+                        e.setPen( QPen(QBrush(QColor(255,0,0)), 5) )
+                        self.prev_selected_connections.append(e)
 
     @Slot(str)
     def componentSelected(self, name):
@@ -239,7 +238,7 @@ class StateMachineGraphDialog(QDialog):
         self.scene = {}
         self.graphicsView = None
         self.nodes = {}
-        self.edges = {}
+        self.edges = []
 
     def showGraph(self, graph_name):
 
@@ -266,8 +265,6 @@ class StateMachineGraphDialog(QDialog):
         print "QGraphicsScene size:", self.width, self.height
 
         self.scene = GraphScene(QRectF(0, 0, self.scX(self.width), self.scY(self.height)))
-
-        self.edges[graph_name] = []
 
         for l in graph:
             items = l.split()
@@ -327,7 +324,7 @@ class StateMachineGraphDialog(QDialog):
                         break
                 edge = self.scene.addPath(path)
                 edge.setData(0, (items[1], items[2]))
-                self.edges[graph_name].append(edge)
+                self.edges.append(edge)
 
                 end_p = QPointF(line[-1][0], line[-1][1])
                 p0 = end_p - QPointF(line[-2][0], line[-2][1])
