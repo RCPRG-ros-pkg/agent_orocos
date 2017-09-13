@@ -221,6 +221,7 @@ class BehaviorGraphDialog(QDialog):
             if name in self.nodes[graph_name]:
                 self.nodes[graph_name][name].setPen(getComponentPen('A'))
         
+    
     @Slot(int)
     def graphSelected(self, index):
         graph_name = self.comboBoxGraphs.itemText(index)
