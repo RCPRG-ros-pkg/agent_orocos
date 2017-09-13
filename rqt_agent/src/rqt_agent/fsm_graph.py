@@ -54,6 +54,14 @@ def getComponentBrush(state):
     elif state == 'R':    # running
         b = QBrush(QColor(0,255,0))
     return b
+    
+def getComponentPen(state):
+    b = QPen(QColor(0,0,255)) # unconfigured/preoperational
+    if state == 'A':      # stopped
+        b = QPen(QBrush(QColor(255,0,0)), 5)
+    elif state == 'N':    # running
+        b = QPen(QBrush(QColor(0,0,0)), 1)
+    return b
 
 class GraphScene(QGraphicsScene):
     def __init__(self, rect):
@@ -201,6 +209,15 @@ class StateMachineGraphDialog(QDialog):
                     port_str += ', type:' + type_str
                     self.comboBoxConnections.addItem(port_str)
                 break
+                
+        for comp_name in self.nodes:
+            self.nodes[comp_name].setPen(getComponentPen('N'))
+        
+        print "name:",name
+            
+        if name in self.nodes:
+            self.nodes[name].setPen(getComponentPen('A'))
+                
 
     @Slot(int)
     def __init__(self, subsystem_name, parent=None):
