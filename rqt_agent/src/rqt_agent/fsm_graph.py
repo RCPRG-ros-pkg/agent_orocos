@@ -179,12 +179,12 @@ class StateMachineGraphDialog(QDialog):
         self.component_selected = name
 
         if name == None or name == '':
-            print "name: NONE"
+            # print "name: NONE"
             self.labelSelectedComponent.setText('No state selected')
             self.labelSubBehaviors.setText('No state selected')
             return
             
-        print "name:", name
+        # print "name:", name
 
         self.labelSelectedComponent.setText(name)
         
@@ -373,9 +373,7 @@ class StateMachineGraphDialog(QDialog):
 #        self.scene[graph_name].render( painter );
 #        del painter
 
-        for e in self.edges:
-            print "edge: ", e.data(0), e.data(1)
-
+   
     @Slot()
     def exportClick(self):
         if not self.initialized:

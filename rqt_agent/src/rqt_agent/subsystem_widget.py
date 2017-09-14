@@ -388,7 +388,7 @@ class SubsystemWidget(QWidget):
     def getStateMachineConnectionsSet(self):
        
             conn_set = {}
-            print "\ngetStateMachineConnectionsSet\n\n"
+            # print "\ngetStateMachineConnectionsSet\n\n"
             # print "self.subsystem_info.state_machine: ", self.subsystem_info.state_machine
             # budujemy zbior conn_set skladajacy sie ze stanu poczatkowego i docelowego oraz luku je laczacego
             # jak nie ma stanu nastepnego to element sklada sie tylko ze stanu biezacego
@@ -397,13 +397,13 @@ class SubsystemWidget(QWidget):
             for state in self.subsystem_info.state_machine:
                 # domyslnie przyjmujemy, ze stan jest niepodlaczony
                 # trzeba jeszcze obsluzyc jak faktycznie nie bedzie nastepnikow
-                print "state.name: ", state.name
+                # print "state.name: ", state.name
                 c_name = state.name
                 # latex_name = c.latex # TODO zaimplementowac
                 latex_name = False # TODO tymczasowo
                 unconnected = True
                 for next_state in state.next_states:
-                    print "next_state: ", next_state
+                    # print "next_state: ", next_state
                     unconnected = False
                     conn_tuple = (c_name, next_state.name)
 
@@ -422,7 +422,7 @@ class SubsystemWidget(QWidget):
                     latex_name = None
                     conn_set[conn_tuple] = [[c_name], [latex_name]]
 
-            print "conn_set", conn_set
+            # print "conn_set", conn_set
 
             return conn_set
 
@@ -777,9 +777,9 @@ class SubsystemWidget(QWidget):
             
           
             gr = self.generateStateMachineGraph(False)
-            print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF gr \n\n"
-            print gr
-            print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF gr \n\n"
+            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF gr \n\n"
+            # print gr
+            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF gr \n\n"
             dot = gr[0]
             in_read, in_write = os.pipe()
             os.write(in_write, dot)
@@ -822,13 +822,13 @@ class SubsystemWidget(QWidget):
             except rospy.ServiceException, e:
                 print "Service call failed: %s"%e
             
-            print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF subsystem_info\n\n"
+            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF subsystem_info\n\n"
 
-            if self.subsystem_info != None:
+            # if self.subsystem_info != None:
                 #print self.subsystem_info
-                print self.subsystem_info.state_machine
+                # print self.subsystem_info.state_machine
             
-            print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF subsystem_info\n\n"
+            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF subsystem_info\n\n"
 
 
             self.initialized = True
