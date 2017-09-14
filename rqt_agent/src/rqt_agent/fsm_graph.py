@@ -158,7 +158,7 @@ class StateMachineGraphDialog(QDialog):
         return self.scale_factor * (self.height - float(y))
 
     @Slot(int)
-    def portSelected(self, index):
+    def transitionSelected(self, index):
         for e in self.prev_selected_connections:
             e.setPen( QPen(QBrush(QColor(0,0,0)), 0) )
         self.prev_selected_connections = []
@@ -181,9 +181,13 @@ class StateMachineGraphDialog(QDialog):
         self.comboBoxConnections.clear()
         self.component_selected = name
 
-        if name == None:
-            self.labelSelectedComponent.setText('')
+        if name == None or name == '':
+            print "name: NONE"
+            self.labelSelectedComponent.setText('No state selected')
+            self.labelSubBehaviors.setText('No state selected')
             return
+            
+        print "name:", name
 
         self.labelSelectedComponent.setText(name)
         
@@ -191,7 +195,7 @@ class StateMachineGraphDialog(QDialog):
         
         for state in self.parent.subsystem_info.state_machine:
             if state.name == name: 
-                print "self.parent.subsystem_info.state_machine state:", state
+                # print "self.parent.subsystem_info.state_machine state:", state
                 
                 behavior_str = ''
                 sb_iter = 0
@@ -203,7 +207,7 @@ class StateMachineGraphDialog(QDialog):
                 self.labelSubBehaviors.setText(behavior_str)
                 
                 for next_state in state.next_states:
-                	print "self.parent.subsystem_info.state_machine next_state:", next_state
+                	# print "self.parent.subsystem_info.state_machine next_state:", next_state
                 	transition_str = 'next state - NAME: ' + next_state.name + ', INIT_COND: ' + next_state.init_cond
                 	self.comboBoxConnections.addItem(transition_str)
                 break
@@ -238,7 +242,7 @@ class StateMachineGraphDialog(QDialog):
         self.pushButton_zoom_out.clicked.connect(self.zoomOutClick)
 
         self.prev_selected_connections = []
-        self.comboBoxConnections.highlighted.connect(self.portSelected)
+        self.comboBoxConnections.highlighted.connect(self.transitionSelected)
  
         self.componentSelected(None)
         self.scene = {}
