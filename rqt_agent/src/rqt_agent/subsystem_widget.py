@@ -667,8 +667,8 @@ class SubsystemWidget(QWidget):
             print "latex_formulas", latex_formulas
             return dot, eps_file_list, latex_formulas
             
-    def exportStateMachineGraph(self, graph_name):
-        dot, eps_file_list, latex_formulas = self.generateStateMachineGraph(graph_name, True)
+    def exportStateMachineGraph(self):
+        dot, eps_file_list, latex_formulas = self.generateStateMachineGraph(True)
 
         in_read, in_write = os.pipe()
         os.write(in_write, "\\documentclass{minimal}\n")
@@ -704,7 +704,7 @@ class SubsystemWidget(QWidget):
         in_read, in_write = os.pipe()
         os.write(in_write, dot)
         os.close(in_write)
-        subprocess.call(['dot', '-Teps', '-o'+graph_name+'.eps'], stdin=in_read)
+        subprocess.call(['dot', '-Teps', '-o'+'fsm.eps'], stdin=in_read)
 
         for (handle, file_name) in eps_file_list:
             os.close(handle)
@@ -713,19 +713,8 @@ class SubsystemWidget(QWidget):
         os.remove('/tmp/texput.ps')
         os.remove('/tmp/texput.eps')
 
-        subprocess.call(['epspdf', graph_name+'.eps', graph_name+'.pdf'], stdin=in_read)
-        os.remove(graph_name+'.eps') 
-            
-            
-    def exportStateMachineGraphs(self):
-    # docelowo ta metoda jest do usuniecia bo jest zbedna bo mamy tylko jeden automat przelaczajcy stany
-    # a nie jak w przpypadku zachowan wiele takich automatow (zachowan)
-        behavior_graphs_list = ["<all>"]#, "<always running>"]
-        for behavior in self.subsystem_info.behaviors:
-            behavior_graphs_list.append(behavior.name)
-
-        for graph_name in behavior_graphs_list:
-            self.exportStateMachineGraph(graph_name)
+        subprocess.call(['epspdf', 'fsm.eps', 'fsm.pdf'], stdin=in_read)
+        os.remove('fsm.eps') 
             
 
     def update_subsystem(self, msg):
