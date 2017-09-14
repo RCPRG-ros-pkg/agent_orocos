@@ -165,16 +165,13 @@ class StateMachineGraphDialog(QDialog):
 
         if not self.component_selected:
             return
-
-        for conn in self.parent.all_connections:
-            if (conn[0] == self.component_selected and conn[1] == self.selected_component_port_names[index]) or \
-                (conn[2] == self.component_selected and conn[3] == self.selected_component_port_names[index]):
-                for e in self.edges:
-                    data = e.data(0)
-                    if (data[0] == conn[0] and data[1] == conn[2]) or \
-                        (data[0] == conn[2] and data[1] == conn[0]):
-                        e.setPen( QPen(QBrush(QColor(255,0,0)), 5) )
-                        self.prev_selected_connections.append(e)
+            
+        for e in self.edges:
+            data = e.data(0)
+            if (data[0] == self.component_selected) and (data[1] == self.selected_component_next_states_names[index]):
+                    e.setPen( QPen(QBrush(QColor(255,0,0)), 5) )
+                    self.prev_selected_connections.append(e)
+                    
 
     @Slot(str)
     def componentSelected(self, name):
@@ -194,7 +191,8 @@ class StateMachineGraphDialog(QDialog):
         # Do combo box comboBoxConnections nalezy dolaczyc wszytkie tranzycje
         
         for state in self.parent.subsystem_info.state_machine:
-            if state.name == name: 
+            if state.name == name:
+                self.selected_component_next_states_names = []
                 # print "self.parent.subsystem_info.state_machine state:", state
                 
                 behavior_str = ''
@@ -207,9 +205,9 @@ class StateMachineGraphDialog(QDialog):
                 self.labelSubBehaviors.setText(behavior_str)
                 
                 for next_state in state.next_states:
-                	# print "self.parent.subsystem_info.state_machine next_state:", next_state
-                	transition_str = 'next state - NAME: ' + next_state.name + ', INIT_COND: ' + next_state.init_cond
-                	self.comboBoxConnections.addItem(transition_str)
+                    self.selected_component_next_states_names.append(next_state.name)
+                    transition_str = 'next state - NAME: ' + next_state.name + ', INIT_COND: ' + next_state.init_cond
+                    self.comboBoxConnections.addItem(transition_str)
                 break
                 
         for comp_name in self.nodes:
@@ -374,6 +372,9 @@ class StateMachineGraphDialog(QDialog):
 #        painter = QPainter( svgGen )
 #        self.scene[graph_name].render( painter );
 #        del painter
+
+        for e in self.edges:
+            print "edge: ", e.data(0), e.data(1)
 
     @Slot()
     def exportClick(self):
