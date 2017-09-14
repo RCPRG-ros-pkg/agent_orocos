@@ -186,35 +186,30 @@ class StateMachineGraphDialog(QDialog):
             return
 
         self.labelSelectedComponent.setText(name)
-        for comp in self.parent.subsystem_info.components:
-            if comp.name == name:
-                self.selected_component_port_names = []
-                for p in comp.ports:
-                    self.selected_component_port_names.append(p.name)
-                    port_str = ''
-                    if p.is_input:
-                        port_str += '[IN]'
-                    else:
-                        port_str += '[OUT]'
-                    port_str += ' ' + p.name
-                    if p.is_connected:
-                        port_str += ' <conncected>'
-                    else:
-                        port_str += ' <not conncected>'
-                    type_str = ''
-                    for tn in p.type_names:
-                        type_str += ' ' + tn
-                    if len(type_str) == 0:
-                        type_str = 'unknown type'
-                    port_str += ', type:' + type_str
-                    self.comboBoxConnections.addItem(port_str)
+        
+        # Do combo box comboBoxConnections nalezy dolaczyc wszytkie tranzycje
+        
+        for state in self.parent.subsystem_info.state_machine:
+            if state.name == name: 
+                print "self.parent.subsystem_info.state_machine state:", state
+                
+                behavior_str = ''
+                sb_iter = 0
+                for subbehavior in state.behavior_names:
+                    sb_iter +=1
+                    if sb_iter > 1:
+                        behavior_str += ', '
+                    behavior_str += subbehavior
+                self.labelSubBehaviors.setText(behavior_str)
+                
+                for next_state in state.next_states:
+                	print "self.parent.subsystem_info.state_machine next_state:", next_state
+                	transition_str = 'next state - NAME: ' + next_state.name + ', INIT_COND: ' + next_state.init_cond
+                	self.comboBoxConnections.addItem(transition_str)
                 break
                 
         for comp_name in self.nodes:
             self.nodes[comp_name].setPen(getComponentPen('N'))
-        
-        # print "name:",name
-            
         if name in self.nodes:
             self.nodes[name].setPen(getComponentPen('A'))
                 

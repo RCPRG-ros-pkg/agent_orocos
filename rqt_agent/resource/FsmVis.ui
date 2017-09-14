@@ -34,9 +34,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="label_sc">
        <property name="text">
-        <string>Selected:</string>
+        <string>Selected state:</string>
        </property>
       </widget>
      </item>
@@ -101,6 +101,20 @@
       <widget class="QPushButton" name="pushButton_export">
        <property name="text">
         <string>Export</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_sb">
+       <property name="text">
+        <string>SubBehaviors: </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelSubBehaviors">
+       <property name="text">
+        <string>No state selected</string>
        </property>
       </widget>
      </item>
