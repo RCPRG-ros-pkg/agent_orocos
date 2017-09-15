@@ -110,9 +110,9 @@ class SubsystemWidget(QWidget):
         self.dialogBehaviorGraph.show()
 
     @Slot()
-    def on_click_showBehaviorHistory(self):
+    def on_click_showStateHistory(self):
         #self.dialogBehaviorGraph.exec_()
-        self.dialogBehaviorHistory.show()
+        self.dialogStateHistory.show()
 
     @Slot()
     def on_click_showComponentsList(self):
@@ -164,8 +164,8 @@ class SubsystemWidget(QWidget):
         self.dialogBehaviorGraph = behavior_graph.BehaviorGraphDialog(self.subsystem_name, self)
         self.showBehaviorGraph.clicked.connect(self.on_click_showBehaviorGraph)
 
-        self.dialogBehaviorHistory = subsystem_state_history.StateHistoryDialog(self.subsystem_name, self)
-        self.showBehaviorHistory.clicked.connect(self.on_click_showBehaviorHistory)
+        self.dialogStateHistory = subsystem_state_history.StateHistoryDialog(self.subsystem_name, self)
+        self.showStateHistory.clicked.connect(self.on_click_showStateHistory)
 
         self.dialogComponents = subsystem_components.ComponentsDialog(self.subsystem_name, self)
         self.showComponentsList.clicked.connect(self.on_click_showComponentsList)
@@ -275,7 +275,7 @@ class SubsystemWidget(QWidget):
 
         return (ss_history, curr_pred, ret_period, float(ret_time_int1), float(ret_time_int2), float(ret_time_int3), float(ret_time_int4), float(ret_time_int5))
 
-    def getConnectionsSet(self, name, hide_converters=True):
+    def getBehaviorConnectionsSet(self, name, hide_converters=True):
             behavior = None
             for b in self.subsystem_info.behaviors:
                 if b.name == name:
@@ -324,7 +324,7 @@ class SubsystemWidget(QWidget):
                 elif name == "<all>":
                     pass
                 else:
-                    raise Exception('getConnectionsSet', 'wrong behavior name: ' + name)
+                    raise Exception('getBehaviorConnectionsSet', 'wrong behavior name: ' + name)
 
                 c_from = c.component_from
                 c_to = c.component_to
@@ -381,6 +381,48 @@ class SubsystemWidget(QWidget):
                     conn_set[conn_tuple][1].append(latex_name)
                 else:
                     conn_set[conn_tuple] = [[cname], [latex_name]]
+
+            return conn_set
+            
+            
+    def getStateMachineConnectionsSet(self):
+       
+            conn_set = {}
+            # print "\ngetStateMachineConnectionsSet\n\n"
+            # print "self.subsystem_info.state_machine: ", self.subsystem_info.state_machine
+            # budujemy zbior conn_set skladajacy sie ze stanu poczatkowego i docelowego oraz luku je laczacego
+            # jak nie ma stanu nastepnego to element sklada sie tylko ze stanu biezacego
+            # iterujemy najpierw po wszystkich stanach a nastepnie badamy ich nastepniki
+
+            for state in self.subsystem_info.state_machine:
+                # domyslnie przyjmujemy, ze stan jest niepodlaczony
+                # trzeba jeszcze obsluzyc jak faktycznie nie bedzie nastepnikow
+                # print "state.name: ", state.name
+                c_name = state.name
+                # latex_name = c.latex # TODO zaimplementowac
+                latex_name = False # TODO tymczasowo
+                unconnected = True
+                for next_state in state.next_states:
+                    # print "next_state: ", next_state
+                    unconnected = False
+                    conn_tuple = (c_name, next_state.name)
+
+                    if not latex_name:
+                        #latex_name = '\\text{' + cname + '}'
+                        latex_name = None
+#                    if not cname:
+#                        continue
+                    #conn_set[conn_tuple] = conn_set[conn_tuple] + "\\n" + cname
+                     
+                    conn_set[conn_tuple] = [[c_name], [latex_name]]
+                    
+                if unconnected:
+                    # Tutaj tez trzeb bedzie latexa dodac
+                    conn_tuple = (c_name, None)
+                    latex_name = None
+                    conn_set[conn_tuple] = [[c_name], [latex_name]]
+
+            # print "conn_set", conn_set
 
             return conn_set
 
@@ -454,7 +496,7 @@ class SubsystemWidget(QWidget):
 
             draw_unconnected = False
 
-            conn_set = self.getConnectionsSet(graph_name, hide_converters=False)
+            conn_set = self.getBehaviorConnectionsSet(graph_name, hide_converters=False)
             dot = "digraph " + self.subsystem_name + " {\n"
 
             new_page = False
@@ -535,6 +577,145 @@ class SubsystemWidget(QWidget):
 
             print "latex_formulas", latex_formulas
             return dot, eps_file_list, latex_formulas
+            
+            
+    def generateStateMachineGraph(self, use_latex):
+            eps_file_list = []
+            latex_formulas = []
+
+            draw_unconnected = True
+
+            conn_set = self.getStateMachineConnectionsSet()
+            dot = "digraph " + self.subsystem_name + " {\n"
+
+            new_page = False
+            shown_components = set()
+            for c in conn_set:
+                if not draw_unconnected and (not c[0] or not c[1]):
+                    continue
+                if c[0] == c[1]:
+                    continue
+                conn = conn_set[c]
+                if use_latex:
+                    conn_latex = ''
+                    sep = ''
+                    for i in range(len(conn[1])):
+                        latex = conn[1][i]
+                        if not latex:
+                            latex = '\\text{' + conn[0][i].replace('_', '\_') + '}'
+                        conn_latex += sep + latex
+                        sep = ' \\\\ '
+
+                    if conn_latex in latex_formulas:
+                        handle, path = eps_file_list[latex_formulas.index(conn_latex)]
+                    else:
+                        handle, path = tempfile.mkstemp(suffix=".eps")
+                        eps_file_list.append( (handle, path) )
+                        latex_formulas.append( conn_latex )
+                else:
+                    conn_str = ''
+                    sep = ''
+                    for cname in conn[0]:
+                        conn_str += sep + cname
+                        sep = '\\n'
+
+                if c[0] == None:
+                    shown_components.add(c[1])
+#                    if draw_unconnected:
+                    if use_latex:
+                        dot += "\"" + c[1] + "_unconnected_in\" [shape=point label=\"\"];\n"
+                        dot += c[1] + "_unconnected_in -> " + c[1] + " [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
+                    else:
+                        dot += "\"" + c[1] + "_unconnected_in\" [shape=point label=\"\"];\n"
+                        dot += c[1] + "_unconnected_in -> " + c[1] + " [label=\"" + conn_str + "\"];\n"
+                elif c[1] == None:
+                    shown_components.add(c[0])
+#                    if draw_unconnected:
+                    if use_latex:
+                        dot += "\"" + c[0] + "_unconnected_out\" [shape=point label=\"\"];\n"
+                        dot += c[0] + " -> " + c[0] + "_unconnected_out [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
+                    else:
+                        dot += "\"" + c[0] + "_unconnected_out\" [shape=point label=\"\"];\n"
+                        dot += c[0] + " -> " + c[0] + "_unconnected_out [label=\"" + conn_str + "\"];\n"
+                else:
+                    # ignore loops (port conversions)
+                    shown_components.add(c[0])
+                    shown_components.add(c[1])
+                    if c[0] != c[1]:
+                        if use_latex:
+                            dot += c[0] + " -> " + c[1] + " [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
+                        else:
+                            dot += c[0] + " -> " + c[1] + " [label=\"" + conn_str + "\"];\n"
+
+            if use_latex:
+                for c in self.subsystem_info.components:
+                    if not c.name in shown_components:
+                        continue
+                    if not c.latex:
+                        continue
+
+                    if c.latex in latex_formulas:
+                        handle, path = eps_file_list[latex_formulas.index(c.latex)]
+                    else:
+                        handle, path = tempfile.mkstemp(suffix=".eps")
+                        eps_file_list.append( (handle, path) )
+                        latex_formulas.append( c.latex )
+                    dot += c.name + " [label=\"\"; image=\"" + path + "\"];\n"
+
+            dot     += "}\n"
+
+            print "latex_formulas", latex_formulas
+            return dot, eps_file_list, latex_formulas
+            
+    def exportStateMachineGraph(self):
+        dot, eps_file_list, latex_formulas = self.generateStateMachineGraph(True)
+
+        in_read, in_write = os.pipe()
+        os.write(in_write, "\\documentclass{minimal}\n")
+        os.write(in_write, "\\usepackage{amsmath}\n")
+        os.write(in_write, "\\usepackage{mathtools}\n")
+        os.write(in_write, "\\begin{document}\n")
+
+        new_page = False
+        for f in latex_formulas:
+            if new_page:
+                os.write(in_write, "\\clearpage\n")
+            new_page = True
+            os.write(in_write, "\\begin{gather*}" + f + "\\end{gather*}\n")
+
+        os.write(in_write, "\\end{document}\n")
+        os.close(in_write)
+
+        # generate dvi file from latex document
+        subprocess.call(['latex', '-output-directory=/tmp'], stdin=in_read)
+
+        page_num = 1
+        for (handle, path) in eps_file_list:
+            subprocess.call(['dvips', '/tmp/texput.dvi', '-pp', str(page_num), '-o', '/tmp/texput.ps'])
+            subprocess.call(['ps2eps', '/tmp/texput.ps', '-f'])
+            with open('/tmp/texput.eps', 'r') as infile:
+                data = infile.read()
+            with open(path, 'w') as outfile:
+                outfile.write(data)
+            page_num += 1
+
+        # generate eps
+        #print dot
+        in_read, in_write = os.pipe()
+        os.write(in_write, dot)
+        os.close(in_write)
+        subprocess.call(['dot', '-Teps', '-o'+'fsm.eps'], stdin=in_read)
+
+        for (handle, file_name) in eps_file_list:
+            os.close(handle)
+            os.remove(file_name)
+        os.remove('/tmp/texput.dvi')
+        os.remove('/tmp/texput.ps')
+        os.remove('/tmp/texput.eps')
+
+        subprocess.call(['epspdf', 'fsm.eps', 'fsm.pdf'], stdin=in_read)
+        os.remove('fsm.eps') 
+            
 
     def update_subsystem(self, msg):
         for value in msg.status[1].values:
@@ -556,9 +737,13 @@ class SubsystemWidget(QWidget):
             for conn in self.subsystem_info.component_connections:
                 self.all_component_connections.append( (conn.component_from, conn.port_from, conn.component_to, conn.port_to) )
 
+
+        # behaviors
+
             behavior_graphs_list = ["<all>"]#, "<always running>"]
             for behavior in self.subsystem_info.behaviors:
                 behavior_graphs_list.append(behavior.name)
+
 
             for graph_name in behavior_graphs_list:
                 gr = self.generateBehaviorGraph(graph_name, False)
@@ -574,11 +759,34 @@ class SubsystemWidget(QWidget):
                 graph_str = graph_str.replace("\\\n", "")
 
                 self.dialogBehaviorGraph.addGraph(graph_name, graph_str)
-                self.dialogStateMachineGraph.addGraph(graph_name, graph_str)
 
             self.dialogBehaviorGraph.showGraph("<all>")
+              
+        # state machine (fsm)
+            
+          
+            gr = self.generateStateMachineGraph(False)
+            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF gr \n\n"
+            # print gr
+            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF gr \n\n"
+            dot = gr[0]
+            in_read, in_write = os.pipe()
+            os.write(in_write, dot)
+            os.close(in_write)
 
-            self.dialogStateMachineGraph.showGraph("<all>")
+            out_read, out_write = os.pipe()
+            subprocess.call(['dot', '-Tplain'], stdin=in_read, stdout=out_write)
+            graph_str = os.read(out_read, 1000000)
+            os.close(out_read)
+            graph_str = graph_str.replace("\\\n", "")
+
+            self.dialogStateMachineGraph.addGraph(graph_str)
+            
+            self.dialogStateMachineGraph.showGraph()
+            
+        # end of state machine
+            
+            
             self.graph_generated = True
 
         components_state = {}
@@ -594,8 +802,7 @@ class SubsystemWidget(QWidget):
         #
         self.dialogComponents.updateState(components_state, components_diag_msgs)
         self.dialogBehaviorGraph.updateState(components_state)
-        self.dialogStateMachineGraph.updateState(components_state)
-
+        
         #rospy.wait_for_service('/' + name = '/getSubsystemInfo')
         if self.subsystem_info == None:
             try:
@@ -603,12 +810,14 @@ class SubsystemWidget(QWidget):
                 self.subsystem_info = self._getSubsystemInfo()
             except rospy.ServiceException, e:
                 print "Service call failed: %s"%e
-
-            if self.subsystem_info != None:
-                #print self.subsystem_info
-                print self.subsystem_info.state_machine
             
-            print "self.subsystem_info.state_machine print ended"
+            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF subsystem_info\n\n"
+
+            # if self.subsystem_info != None:
+                #print self.subsystem_info
+                # print self.subsystem_info.state_machine
+            
+            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF subsystem_info\n\n"
 
 
             self.initialized = True
@@ -616,7 +825,8 @@ class SubsystemWidget(QWidget):
         mcd = self.parseMasterComponentDiag(self.state)
         if len(mcd[0]) > 0:
             self.SubsystemState.setText(mcd[0][0][0])
-            self.dialogBehaviorHistory.updateState(mcd)
+            self.dialogStateHistory.updateState(mcd)
+            self.dialogStateMachineGraph.updateState(mcd)
             self.PeriodWall.setText(mcd[2] + ', ' + str(mcd[3]*1000.0) + 'ms, ' + str(mcd[4]*1000.0) + 'ms, ' + str(mcd[5]*1000.0) + 'ms, ' + str(mcd[6]*1000.0) + 'ms, ' + str(mcd[7]*1000.0) + 'ms')
         else:
             self.SubsystemState.setText("unknown")
