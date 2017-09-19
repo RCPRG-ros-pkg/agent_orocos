@@ -434,7 +434,7 @@ class BehaviorGraphDialog(QDialog):
             changed = True
         else:
             for comp_name in self.components_state:
-                if self.components_state[comp_name] != components_state[comp_name]:
+                if comp_name in components_state and self.components_state[comp_name] != components_state[comp_name]:
                     changed = True
                     break
 
@@ -444,6 +444,4 @@ class BehaviorGraphDialog(QDialog):
                 for comp_name in self.nodes[graph_name]:
                     if comp_name in self.components_state:
                         self.nodes[graph_name][comp_name].setBrush(getComponentBrush(self.components_state[comp_name]))
-                        
-                     
-                        
+
