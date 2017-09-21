@@ -23,3 +23,8 @@ include_directories(${catkin_INCLUDE_DIRS} include)
 #  DEPENDS_TARGETS rtt_ros rtt_rosclock shm_comm
 #)
 
+### Orocos Package Exports and Install Targets ###
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

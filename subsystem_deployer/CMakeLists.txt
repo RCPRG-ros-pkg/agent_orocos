@@ -53,4 +53,15 @@ catkin_package(
   CATKIN_DEPENDS subsystem_common subsystem_msgs
 )
 
+### Orocos Package Exports and Install Targets ###
+
+install(TARGETS subsystem_deployer deployer
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
 

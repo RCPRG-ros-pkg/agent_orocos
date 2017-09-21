@@ -43,5 +43,19 @@ orocos_generate_package(
   DEPENDS_TARGETS rtt_ros rtt_rosclock
 )
 
+### Orocos Package Exports and Install Targets ###
 
+install(TARGETS master_component
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+#install(DIRECTORY include/${PROJECT_NAME}/
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#)
+
+orocos_install_headers(
+  DIRECTORY include/${PROJECT_NAME}/
+)
 
