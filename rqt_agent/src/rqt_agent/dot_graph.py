@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import tempfile
+import os
+import subprocess
 
 class Graph:
     class Node:
@@ -117,20 +119,84 @@ class Graph:
         if use_latex:
             for name in self.nodes:
                 n = self.nodes[name]
-                if not n.latex_label:
-                    continue
-                if n.latex_label in latex_formulas:
-                    handle, path = eps_file_list[latex_formulas.index(n.latex_label)]
+                latex_label = n.latex_label
+                if not latex_label:
+                    latex_label = '\\text{' + n.label.replace('_', '\_') + '}'
+                if latex_label in latex_formulas:
+                    handle, path = eps_file_list[latex_formulas.index(latex_label)]
                 else:
                     handle, path = tempfile.mkstemp(suffix=".eps")
                     eps_file_list.append( (handle, path) )
-                    latex_formulas.append( n.latex_label )
+                    latex_formulas.append( latex_label )
                 dot += n.label + " [label=\"\"; image=\"" + path + "\"];\n"
+        else:
+            for name in self.nodes:
+                n = self.nodes[name]
+                dot += n.label + " [label=\"" + n.label + "\"];\n"
 
         dot     += "}\n"
         return dot, eps_file_list, latex_formulas
 
+    def exportToPdf(self, filename):
+        dot, eps_file_list, latex_formulas = self.generateDotFile(draw_unconnected=False, use_latex=True)
 
-    def generateVisualLayout(self):
-        dot = self.generateDotFile(draw_unconnected=False)
+        in_read, in_write = os.pipe()
+        os.write(in_write, "\\documentclass{minimal}\n")
+        os.write(in_write, "\\usepackage{amsmath}\n")
+        os.write(in_write, "\\usepackage{mathtools}\n")
+        os.write(in_write, "\\begin{document}\n")
+
+        new_page = False
+        for f in latex_formulas:
+            if new_page:
+                os.write(in_write, "\\clearpage\n")
+            new_page = True
+            os.write(in_write, "\\begin{gather*}" + f + "\\end{gather*}\n")
+
+        os.write(in_write, "\\end{document}\n")
+        os.close(in_write)
+
+        # generate dvi file from latex document
+        subprocess.call(['latex', '-output-directory=/tmp'], stdin=in_read)
+
+        page_num = 1
+        for (handle, path) in eps_file_list:
+            subprocess.call(['dvips', '/tmp/texput.dvi', '-pp', str(page_num), '-o', '/tmp/texput.ps'])
+            subprocess.call(['ps2eps', '/tmp/texput.ps', '-f'])
+            with open('/tmp/texput.eps', 'r') as infile:
+                data = infile.read()
+            with open(path, 'w') as outfile:
+                outfile.write(data)
+            page_num += 1
+
+        # generate eps
+        in_read, in_write = os.pipe()
+        os.write(in_write, dot)
+        os.close(in_write)
+        subprocess.call(['dot', '-Teps', '-o'+filename+'.eps'], stdin=in_read)
+
+        for (handle, file_name) in eps_file_list:
+            os.close(handle)
+            os.remove(file_name)
+        os.remove('/tmp/texput.dvi')
+        os.remove('/tmp/texput.ps')
+        os.remove('/tmp/texput.eps')
+
+        subprocess.call(['epspdf', filename+'.eps', filename], stdin=in_read)
+        os.remove(filename+'.eps') 
+
+    def exportToPlain(self):
+        dot, eps_file_list, latex_formulas = self.generateDotFile(draw_unconnected=False, use_latex=False)
+
+        in_read, in_write = os.pipe()
+        os.write(in_write, dot)
+        os.close(in_write)
+
+        out_read, out_write = os.pipe()
+        subprocess.call(['dot', '-Tplain'], stdin=in_read, stdout=out_write)
+        graph_str = os.read(out_read, 1000000)
+        os.close(out_read)
+        graph_str = graph_str.replace("\\\n", "")
+
+        return graph_str
 

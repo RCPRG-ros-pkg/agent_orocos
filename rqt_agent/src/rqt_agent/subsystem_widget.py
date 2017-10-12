@@ -276,102 +276,8 @@ class SubsystemWidget(QWidget):
 
         return (ss_history, curr_pred, ret_period, float(ret_time_int1), float(ret_time_int2), float(ret_time_int3), float(ret_time_int4), float(ret_time_int5))
 
-    def getStateMachineConnectionsSet(self):
-       
-            conn_set = {}
-            # print "\ngetStateMachineConnectionsSet\n\n"
-            # print "self.subsystem_info.state_machine: ", self.subsystem_info.state_machine
-            # budujemy zbior conn_set skladajacy sie ze stanu poczatkowego i docelowego oraz luku je laczacego
-            # jak nie ma stanu nastepnego to element sklada sie tylko ze stanu biezacego
-            # iterujemy najpierw po wszystkich stanach a nastepnie badamy ich nastepniki
-
-            for state in self.subsystem_info.state_machine:
-                # domyslnie przyjmujemy, ze stan jest niepodlaczony
-                # trzeba jeszcze obsluzyc jak faktycznie nie bedzie nastepnikow
-                # print "state.name: ", state.name
-                c_name = state.name
-                # latex_name = c.latex # TODO zaimplementowac
-                latex_name = False # TODO tymczasowo
-                unconnected = True
-                for next_state in state.next_states:
-                    # print "next_state: ", next_state
-                    unconnected = False
-                    conn_tuple = (c_name, next_state.name)
-
-                    if not latex_name:
-                        #latex_name = '\\text{' + cname + '}'
-                        latex_name = None
-#                    if not cname:
-#                        continue
-                    #conn_set[conn_tuple] = conn_set[conn_tuple] + "\\n" + cname
-                     
-                    conn_set[conn_tuple] = [[c_name], [latex_name]]
-                    
-                if unconnected:
-                    # Tutaj tez trzeb bedzie latexa dodac
-                    conn_tuple = (c_name, None)
-                    latex_name = None
-                    conn_set[conn_tuple] = [[c_name], [latex_name]]
-
-            # print "conn_set", conn_set
-
-            return conn_set
-
-    def getComponentNameFromPath(self, path):
-        idx = path.find('.')
-        if idx < 0:
-            return None
-        return path[:idx]
-
     def exportBehaviorGraph(self, graph_name):
-        dot, eps_file_list, latex_formulas = self.generateBehaviorGraph(graph_name, True)
-
-        in_read, in_write = os.pipe()
-        os.write(in_write, "\\documentclass{minimal}\n")
-        os.write(in_write, "\\usepackage{amsmath}\n")
-        os.write(in_write, "\\usepackage{mathtools}\n")
-        os.write(in_write, "\\begin{document}\n")
-
-        new_page = False
-        for f in latex_formulas:
-            if new_page:
-                os.write(in_write, "\\clearpage\n")
-            new_page = True
-            os.write(in_write, "\\begin{gather*}" + f + "\\end{gather*}\n")
-
-        os.write(in_write, "\\end{document}\n")
-        os.close(in_write)
-
-        # generate dvi file from latex document
-        subprocess.call(['latex', '-output-directory=/tmp'], stdin=in_read)
-
-        page_num = 1
-        for (handle, path) in eps_file_list:
-            subprocess.call(['dvips', '/tmp/texput.dvi', '-pp', str(page_num), '-o', '/tmp/texput.ps'])
-            subprocess.call(['ps2eps', '/tmp/texput.ps', '-f'])
-            with open('/tmp/texput.eps', 'r') as infile:
-                data = infile.read()
-            with open(path, 'w') as outfile:
-                outfile.write(data)
-            page_num += 1
-
-        # generate eps
-        #print dot
-        in_read, in_write = os.pipe()
-        os.write(in_write, dot)
-        os.close(in_write)
-        subprocess.call(['dot', '-Teps', '-o'+graph_name+'.eps'], stdin=in_read)
-
-        for (handle, file_name) in eps_file_list:
-            os.close(handle)
-            os.remove(file_name)
-        os.remove('/tmp/texput.dvi')
-        os.remove('/tmp/texput.ps')
-        os.remove('/tmp/texput.eps')
-
-        subprocess.call(['epspdf', graph_name+'.eps', graph_name+'.pdf'], stdin=in_read)
-        os.remove(graph_name+'.eps')
-
+        self.behavior_graphs[graph_name].exportToPdf(self.subsystem_name+"_"+graph_name+".pdf")
 
     def exportBehaviorGraphs(self):
         behavior_graphs_list = ["<all>"]#, "<always running>"]
@@ -380,11 +286,6 @@ class SubsystemWidget(QWidget):
 
         for graph_name in behavior_graphs_list:
             self.exportBehaviorGraph(graph_name)
-
-    def generateBehaviorGraph(self, graph_name, use_latex):
-        graph = self.genBehaviorGraph(self.subsystem_info, graph_name, hide_converters=False)
-        dot, eps_file_list, latex_formulas = graph.generateDotFile(draw_unconnected=False, use_latex=use_latex)
-        return dot, eps_file_list, latex_formulas
 
     def genBehaviorGraph(self, subsystem_info, behavior_name, hide_converters=True):
         g = dot_graph.Graph()
@@ -519,14 +420,10 @@ class SubsystemWidget(QWidget):
 
         return g
 
-    def generateStateMachineGraph(self, use_latex=False):
-        graph = self.genStateMachineGraph(self.subsystem_info)
-        dot, eps_file_list, latex_formulas = graph.generateDotFile(draw_unconnected=False, use_latex=use_latex)
-        return dot, eps_file_list, latex_formulas
-
     def genStateMachineGraph(self, subsystem_info):
         g = dot_graph.Graph()
 
+        print "subsystem name: " + self.subsystem_name
         edges_counter = 0
         for state in subsystem_info.state_machine:
             # domyslnie przyjmujemy, ze stan jest niepodlaczony
@@ -542,61 +439,17 @@ class SubsystemWidget(QWidget):
                 e = dot_graph.Graph.Edge()
                 e.id_from = state.name
                 e.id_to = next_state.name
-                e.addLabel('c' + str(edges_counter), 'c_{' + str(edges_counter) + '}')
+                e.addLabel('s' + str(edges_counter), '\sigma_{' + str(edges_counter) + '}')
+                print "    s_" + str(edges_counter) + " = " + next_state.init_cond
+                #TODO:
+                #latex_cond = "\sigma_{" + str(edges_counter) + "} = " + next_state.init_cond
                 edges_counter += 1
                 g.edges.append(e)
         return g
             
     def exportStateMachineGraph(self):
-        dot, eps_file_list, latex_formulas = self.generateStateMachineGraph(use_latex=True)
-
-        in_read, in_write = os.pipe()
-        os.write(in_write, "\\documentclass{minimal}\n")
-        os.write(in_write, "\\usepackage{amsmath}\n")
-        os.write(in_write, "\\usepackage{mathtools}\n")
-        os.write(in_write, "\\begin{document}\n")
-
-        new_page = False
-        for f in latex_formulas:
-            if new_page:
-                os.write(in_write, "\\clearpage\n")
-            new_page = True
-            os.write(in_write, "\\begin{gather*}" + f + "\\end{gather*}\n")
-
-        os.write(in_write, "\\end{document}\n")
-        os.close(in_write)
-
-        # generate dvi file from latex document
-        subprocess.call(['latex', '-output-directory=/tmp'], stdin=in_read)
-
-        page_num = 1
-        for (handle, path) in eps_file_list:
-            subprocess.call(['dvips', '/tmp/texput.dvi', '-pp', str(page_num), '-o', '/tmp/texput.ps'])
-            subprocess.call(['ps2eps', '/tmp/texput.ps', '-f'])
-            with open('/tmp/texput.eps', 'r') as infile:
-                data = infile.read()
-            with open(path, 'w') as outfile:
-                outfile.write(data)
-            page_num += 1
-
-        # generate eps
-        #print dot
-        in_read, in_write = os.pipe()
-        os.write(in_write, dot)
-        os.close(in_write)
-        subprocess.call(['dot', '-Teps', '-o'+'fsm.eps'], stdin=in_read)
-
-        for (handle, file_name) in eps_file_list:
-            os.close(handle)
-            os.remove(file_name)
-        os.remove('/tmp/texput.dvi')
-        os.remove('/tmp/texput.ps')
-        os.remove('/tmp/texput.eps')
-
-        subprocess.call(['epspdf', 'fsm.eps', 'fsm.pdf'], stdin=in_read)
-        os.remove('fsm.eps') 
+        self.state_machine_graph.exportToPdf(self.subsystem_name+"_fsm.pdf")
             
-
     def update_subsystem(self, msg):
         for value in msg.status[1].values:
             if value.key == 'master_component':
@@ -624,43 +477,18 @@ class SubsystemWidget(QWidget):
             for behavior in self.subsystem_info.behaviors:
                 behavior_graphs_list.append(behavior.name)
 
-
+            self.behavior_graphs = {}
             for graph_name in behavior_graphs_list:
-                gr = self.generateBehaviorGraph(graph_name, False)
-                dot = gr[0]
-                in_read, in_write = os.pipe()
-                os.write(in_write, dot)
-                os.close(in_write)
-
-                out_read, out_write = os.pipe()
-                subprocess.call(['dot', '-Tplain'], stdin=in_read, stdout=out_write)
-                graph_str = os.read(out_read, 1000000)
-                os.close(out_read)
-                graph_str = graph_str.replace("\\\n", "")
-
+                self.behavior_graphs[graph_name] = self.genBehaviorGraph(self.subsystem_info, graph_name, hide_converters=False)
+                graph_str = self.behavior_graphs[graph_name].exportToPlain()
                 self.dialogBehaviorGraph.addGraph(graph_name, graph_str)
 
             self.dialogBehaviorGraph.showGraph("<all>")
               
         # state machine (fsm)
-            
-            gr = self.generateStateMachineGraph(use_latex=False)
-            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF gr \n\n"
-            # print gr
-            # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF gr \n\n"
-            dot = gr[0]
-            in_read, in_write = os.pipe()
-            os.write(in_write, dot)
-            os.close(in_write)
-
-            out_read, out_write = os.pipe()
-            subprocess.call(['dot', '-Tplain'], stdin=in_read, stdout=out_write)
-            graph_str = os.read(out_read, 1000000)
-            os.close(out_read)
-            graph_str = graph_str.replace("\\\n", "")
-
+            self.state_machine_graph = self.genStateMachineGraph(self.subsystem_info)
+            graph_str = self.state_machine_graph.exportToPlain()
             self.dialogStateMachineGraph.addGraph(graph_str)
-            
             self.dialogStateMachineGraph.showGraph()
             
         # end of state machine
