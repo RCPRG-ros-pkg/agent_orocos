@@ -56,6 +56,7 @@ import behavior_graph
 import fsm_graph
 import subsystem_components
 import subsystem_state_history
+import dot_graph
 
 class SubsystemWidget(QWidget):
     """
@@ -275,116 +276,6 @@ class SubsystemWidget(QWidget):
 
         return (ss_history, curr_pred, ret_period, float(ret_time_int1), float(ret_time_int2), float(ret_time_int3), float(ret_time_int4), float(ret_time_int5))
 
-    def getBehaviorConnectionsSet(self, name, hide_converters=True):
-            behavior = None
-            for b in self.subsystem_info.behaviors:
-                if b.name == name:
-                    behavior = b
-                    break
-
-            if hide_converters:
-                conv_comp = set()
-                for comp in self.subsystem_info.components:
-                    if comp.is_converter:
-                        conv_comp.add(comp.name)
-
-            sw_comp = set()
-            for b in self.subsystem_info.behaviors:
-                for r in b.running_components:
-                    sw_comp.add(r)
-
-            all_comp = set()
-            for comp in self.subsystem_info.components:
-                all_comp.add(comp.name)
-
-            always_running = all_comp - sw_comp
-
-            conn_set = {}
-            current_running = set()
-            if behavior:
-                for r in behavior.running_components:
-                    current_running.add(r)
-            other_behaviors_comp = sw_comp - current_running
-            running = always_running.union(current_running)
-
-            if hide_converters:
-                conv_connections = {}
-
-            for c in self.subsystem_info.component_connections:
-                if ((not c.component_from.strip()) or (not c.component_to.strip())) and not c.unconnected:
-                    continue
-                if behavior:
-                    if (not c.component_from in current_running) and (not c.component_to in current_running):
-                        continue
-                    if c.component_from in other_behaviors_comp or c.component_to in other_behaviors_comp:
-                        continue
-#                elif name == "<always running>":
-#                    if (not c.component_from in always_running) or (not c.component_to in always_running):
-#                        continue
-                elif name == "<all>":
-                    pass
-                else:
-                    raise Exception('getBehaviorConnectionsSet', 'wrong behavior name: ' + name)
-
-                c_from = c.component_from
-                c_to = c.component_to
-                unconnected = c.unconnected
-                c_name = c.name
-                if hide_converters:
-                    if c_from in conv_comp:
-                        if not c_from in conv_connections:
-                            conv_connections[c_from] = (None, c_to)
-                            continue
-                        else:
-                            conv_connections[c_from] = (conv_connections[c_from][0], c_to)
-                            c_to = conv_connections[c_from][1]
-                            c_from = conv_connections[c_from][0]
-                            unconnected = False
-                    elif c_to in conv_comp:
-                        if not c_to in conv_connections:
-                            conv_connections[c_to] = (c_from, None)
-                            continue
-                        else:
-                            conv_connections[c_to] = (c_from, conv_connections[c_to][1])
-                            c_from = conv_connections[c_to][0]
-                            c_to = conv_connections[c_to][1]
-                            unconnected = False
-
-                if not unconnected:
-                    conn_tuple = (c_from, c_to)
-                else:
-                    if not c_from.strip():
-                        conn_tuple = (None, c_to)
-                    else:
-                        conn_tuple = (c_from, None)
-
-                if c_name:
-                    cname = c_name
-                elif c.port_from.strip():
-                    cname = c.port_from
-                    if not unconnected and cname.endswith("_OUTPORT"):
-                        cname = cname[:-8]
-                else:
-                    cname = c.port_to
-                    if not unconnected and cname.endswith("_INPORT"):
-                        cname = cname[:-7]
-
-                latex_name = c.latex
-                if not latex_name:
-                    #latex_name = '\\text{' + cname + '}'
-                    latex_name = None
-#                if not cname:
-#                    continue
-                if conn_tuple in conn_set:
-                    #conn_set[conn_tuple] = conn_set[conn_tuple] + "\\n" + cname
-                    conn_set[conn_tuple][0].append(cname)
-                    conn_set[conn_tuple][1].append(latex_name)
-                else:
-                    conn_set[conn_tuple] = [[cname], [latex_name]]
-
-            return conn_set
-            
-            
     def getStateMachineConnectionsSet(self):
        
             conn_set = {}
@@ -491,184 +382,173 @@ class SubsystemWidget(QWidget):
             self.exportBehaviorGraph(graph_name)
 
     def generateBehaviorGraph(self, graph_name, use_latex):
-            eps_file_list = []
-            latex_formulas = []
+        graph = self.genBehaviorGraph(self.subsystem_info, graph_name, hide_converters=False)
+        dot, eps_file_list, latex_formulas = graph.generateDotFile(draw_unconnected=False, use_latex=use_latex)
+        return dot, eps_file_list, latex_formulas
 
-            draw_unconnected = False
+    def genBehaviorGraph(self, subsystem_info, behavior_name, hide_converters=True):
+        g = dot_graph.Graph()
+        behavior = None
+        for b in subsystem_info.behaviors:
+            if b.name == behavior_name:
+                behavior = b
+                break
 
-            conn_set = self.getBehaviorConnectionsSet(graph_name, hide_converters=False)
-            dot = "digraph " + self.subsystem_name + " {\n"
+        if hide_converters:
+            conv_comp = set()
+            for comp in subsystem_info.components:
+                if comp.is_converter:
+                    conv_comp.add(comp.name)
 
-            new_page = False
-            shown_components = set()
-            for c in conn_set:
-                if not draw_unconnected and (not c[0] or not c[1]):
+        sw_comp = set()
+        for b in subsystem_info.behaviors:
+            for r in b.running_components:
+                sw_comp.add(r)
+
+        all_comp = set()
+        for comp in subsystem_info.components:
+            all_comp.add(comp.name)
+
+        always_running = all_comp - sw_comp
+
+        conn_set = {}
+        current_running = set()
+        if behavior:
+            for r in behavior.running_components:
+                current_running.add(r)
+        other_behaviors_comp = sw_comp - current_running
+        running = always_running.union(current_running)
+
+        if hide_converters:
+            conv_connections = {}
+
+        for c in subsystem_info.component_connections:
+            if ((not c.component_from.strip()) or (not c.component_to.strip())) and not c.unconnected:
+                continue
+            if behavior:
+                if (not c.component_from in current_running) and (not c.component_to in current_running):
                     continue
-                if c[0] == c[1]:
+                if c.component_from in other_behaviors_comp or c.component_to in other_behaviors_comp:
                     continue
-                conn = conn_set[c]
-                if use_latex:
-                    conn_latex = ''
-                    sep = ''
-                    for i in range(len(conn[1])):
-                        latex = conn[1][i]
-                        if not latex:
-                            latex = '\\text{' + conn[0][i].replace('_', '\_') + '}'
-                        conn_latex += sep + latex
-                        sep = ' \\\\ '
+#                elif name == "<always running>":
+#                    if (not c.component_from in always_running) or (not c.component_to in always_running):
+#                        continue
+            elif behavior_name == "<all>":
+                pass
+            else:
+                raise Exception('getBehaviorConnectionsSet', 'wrong behavior name: ' + behavior_name)
 
-                    if conn_latex in latex_formulas:
-                        handle, path = eps_file_list[latex_formulas.index(conn_latex)]
-                    else:
-                        handle, path = tempfile.mkstemp(suffix=".eps")
-                        eps_file_list.append( (handle, path) )
-                        latex_formulas.append( conn_latex )
-                else:
-                    conn_str = ''
-                    sep = ''
-                    for cname in conn[0]:
-                        conn_str += sep + cname
-                        sep = '\\n'
-
-                if c[0] == None:
-                    shown_components.add(c[1])
-#                    if draw_unconnected:
-                    if use_latex:
-                        dot += "\"" + c[1] + "_unconnected_in\" [shape=point label=\"\"];\n"
-                        dot += c[1] + "_unconnected_in -> " + c[1] + " [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
-                    else:
-                        dot += "\"" + c[1] + "_unconnected_in\" [shape=point label=\"\"];\n"
-                        dot += c[1] + "_unconnected_in -> " + c[1] + " [label=\"" + conn_str + "\"];\n"
-                elif c[1] == None:
-                    shown_components.add(c[0])
-#                    if draw_unconnected:
-                    if use_latex:
-                        dot += "\"" + c[0] + "_unconnected_out\" [shape=point label=\"\"];\n"
-                        dot += c[0] + " -> " + c[0] + "_unconnected_out [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
-                    else:
-                        dot += "\"" + c[0] + "_unconnected_out\" [shape=point label=\"\"];\n"
-                        dot += c[0] + " -> " + c[0] + "_unconnected_out [label=\"" + conn_str + "\"];\n"
-                else:
-                    # ignore loops (port conversions)
-                    shown_components.add(c[0])
-                    shown_components.add(c[1])
-                    if c[0] != c[1]:
-                        if use_latex:
-                            dot += c[0] + " -> " + c[1] + " [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
-                        else:
-                            dot += c[0] + " -> " + c[1] + " [label=\"" + conn_str + "\"];\n"
-
-            if use_latex:
-                for c in self.subsystem_info.components:
-                    if not c.name in shown_components:
+            c_from = c.component_from
+            c_to = c.component_to
+            unconnected = c.unconnected
+            c_name = c.name
+            if hide_converters:
+                if c_from in conv_comp:
+                    if not c_from in conv_connections:
+                        conv_connections[c_from] = (None, c_to)
                         continue
-                    if not c.latex:
+                    else:
+                        conv_connections[c_from] = (conv_connections[c_from][0], c_to)
+                        c_to = conv_connections[c_from][1]
+                        c_from = conv_connections[c_from][0]
+                        unconnected = False
+                elif c_to in conv_comp:
+                    if not c_to in conv_connections:
+                        conv_connections[c_to] = (c_from, None)
                         continue
-
-                    if c.latex in latex_formulas:
-                        handle, path = eps_file_list[latex_formulas.index(c.latex)]
                     else:
-                        handle, path = tempfile.mkstemp(suffix=".eps")
-                        eps_file_list.append( (handle, path) )
-                        latex_formulas.append( c.latex )
-                    dot += c.name + " [label=\"\"; image=\"" + path + "\"];\n"
+                        conv_connections[c_to] = (c_from, conv_connections[c_to][1])
+                        c_from = conv_connections[c_to][0]
+                        c_to = conv_connections[c_to][1]
+                        unconnected = False
 
-            dot     += "}\n"
-
-            print "latex_formulas", latex_formulas
-            return dot, eps_file_list, latex_formulas
-            
-            
-    def generateStateMachineGraph(self, use_latex):
-            eps_file_list = []
-            latex_formulas = []
-
-            draw_unconnected = True
-
-            conn_set = self.getStateMachineConnectionsSet()
-            dot = "digraph " + self.subsystem_name + " {\n"
-
-            new_page = False
-            shown_components = set()
-            for c in conn_set:
-                if not draw_unconnected and (not c[0] or not c[1]):
-                    continue
-                if c[0] == c[1]:
-                    continue
-                conn = conn_set[c]
-                if use_latex:
-                    conn_latex = ''
-                    sep = ''
-                    for i in range(len(conn[1])):
-                        latex = conn[1][i]
-                        if not latex:
-                            latex = '\\text{' + conn[0][i].replace('_', '\_') + '}'
-                        conn_latex += sep + latex
-                        sep = ' \\\\ '
-
-                    if conn_latex in latex_formulas:
-                        handle, path = eps_file_list[latex_formulas.index(conn_latex)]
-                    else:
-                        handle, path = tempfile.mkstemp(suffix=".eps")
-                        eps_file_list.append( (handle, path) )
-                        latex_formulas.append( conn_latex )
+            if not unconnected:
+                conn_tuple = (c_from, c_to)
+            else:
+                if not c_from.strip():
+                    conn_tuple = (None, c_to)
                 else:
-                    conn_str = ''
-                    sep = ''
-                    for cname in conn[0]:
-                        conn_str += sep + cname
-                        sep = '\\n'
+                    conn_tuple = (c_from, None)
 
-                if c[0] == None:
-                    shown_components.add(c[1])
-#                    if draw_unconnected:
-                    if use_latex:
-                        dot += "\"" + c[1] + "_unconnected_in\" [shape=point label=\"\"];\n"
-                        dot += c[1] + "_unconnected_in -> " + c[1] + " [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
-                    else:
-                        dot += "\"" + c[1] + "_unconnected_in\" [shape=point label=\"\"];\n"
-                        dot += c[1] + "_unconnected_in -> " + c[1] + " [label=\"" + conn_str + "\"];\n"
-                elif c[1] == None:
-                    shown_components.add(c[0])
-#                    if draw_unconnected:
-                    if use_latex:
-                        dot += "\"" + c[0] + "_unconnected_out\" [shape=point label=\"\"];\n"
-                        dot += c[0] + " -> " + c[0] + "_unconnected_out [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
-                    else:
-                        dot += "\"" + c[0] + "_unconnected_out\" [shape=point label=\"\"];\n"
-                        dot += c[0] + " -> " + c[0] + "_unconnected_out [label=\"" + conn_str + "\"];\n"
-                else:
-                    # ignore loops (port conversions)
-                    shown_components.add(c[0])
-                    shown_components.add(c[1])
-                    if c[0] != c[1]:
-                        if use_latex:
-                            dot += c[0] + " -> " + c[1] + " [label=<<TABLE BORDER=\"0\"><TR><TD><IMG src=\"" + path + "\"/></TD></TR></TABLE>>];\n"
-                        else:
-                            dot += c[0] + " -> " + c[1] + " [label=\"" + conn_str + "\"];\n"
+            if c_name:
+                cname = c_name
+            elif c.port_from.strip():
+                cname = c.port_from
+                if not unconnected and cname.endswith("_OUTPORT"):
+                    cname = cname[:-8]
+            else:
+                cname = c.port_to
+                if not unconnected and cname.endswith("_INPORT"):
+                    cname = cname[:-7]
 
-            if use_latex:
-                for c in self.subsystem_info.components:
-                    if not c.name in shown_components:
-                        continue
-                    if not c.latex:
-                        continue
+            latex_name = c.latex
+            if not latex_name:
+                #latex_name = '\\text{' + cname + '}'
+                latex_name = None
+#                if not cname:
+#                    continue
+            if conn_tuple in conn_set:
+                #conn_set[conn_tuple] = conn_set[conn_tuple] + "\\n" + cname
+                conn_set[conn_tuple][0].append(cname)
+                conn_set[conn_tuple][1].append(latex_name)
+            else:
+                conn_set[conn_tuple] = [[cname], [latex_name]]
 
-                    if c.latex in latex_formulas:
-                        handle, path = eps_file_list[latex_formulas.index(c.latex)]
-                    else:
-                        handle, path = tempfile.mkstemp(suffix=".eps")
-                        eps_file_list.append( (handle, path) )
-                        latex_formulas.append( c.latex )
-                    dot += c.name + " [label=\"\"; image=\"" + path + "\"];\n"
+        shown_components = set()
+        for conn_tuple in conn_set:
+            edge = g.getEdge(conn_tuple[0], conn_tuple[1])
+            if edge == None:
+                edge = dot_graph.Graph.Edge()
+                edge.id_from = conn_tuple[0]
+                edge.id_to = conn_tuple[1]
+            for i in range(len(conn_set[conn_tuple][0])):
+                edge.addLabel(conn_set[conn_tuple][0][i], conn_set[conn_tuple][1][i])
+            if conn_tuple[0] != None:
+                shown_components.add(conn_tuple[0])
+            if conn_tuple[1] != None:
+                shown_components.add(conn_tuple[1])
+            g.edges.append(edge)
 
-            dot     += "}\n"
+        for c in subsystem_info.components:
+            if not c.name in shown_components:
+                continue
+            node = dot_graph.Graph.Node()
+            node.label = c.name
+            node.latex_label = c.latex
+            g.nodes[c.name] = node
 
-            print "latex_formulas", latex_formulas
-            return dot, eps_file_list, latex_formulas
+        return g
+
+    def generateStateMachineGraph(self, use_latex=False):
+        graph = self.genStateMachineGraph(self.subsystem_info)
+        dot, eps_file_list, latex_formulas = graph.generateDotFile(draw_unconnected=False, use_latex=use_latex)
+        return dot, eps_file_list, latex_formulas
+
+    def genStateMachineGraph(self, subsystem_info):
+        g = dot_graph.Graph()
+
+        edges_counter = 0
+        for state in subsystem_info.state_machine:
+            # domyslnie przyjmujemy, ze stan jest niepodlaczony
+            # trzeba jeszcze obsluzyc jak faktycznie nie bedzie nastepnikow
+            # print "state.name: ", state.name
+            n = dot_graph.Graph.Node()
+            n.label = state.name
+            g.nodes[state.name] = n
+            #print "state", state.name
+
+            for next_state in state.next_states:
+                #print "    next state", next_state.name
+                e = dot_graph.Graph.Edge()
+                e.id_from = state.name
+                e.id_to = next_state.name
+                e.addLabel('c' + str(edges_counter), 'c_{' + str(edges_counter) + '}')
+                edges_counter += 1
+                g.edges.append(e)
+        return g
             
     def exportStateMachineGraph(self):
-        dot, eps_file_list, latex_formulas = self.generateStateMachineGraph(True)
+        dot, eps_file_list, latex_formulas = self.generateStateMachineGraph(use_latex=True)
 
         in_read, in_write = os.pipe()
         os.write(in_write, "\\documentclass{minimal}\n")
@@ -764,8 +644,7 @@ class SubsystemWidget(QWidget):
               
         # state machine (fsm)
             
-          
-            gr = self.generateStateMachineGraph(False)
+            gr = self.generateStateMachineGraph(use_latex=False)
             # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " START OF gr \n\n"
             # print gr
             # print "\n\nSUBSYSTEM NAME:",self.subsystem_name, " END OF gr \n\n"
