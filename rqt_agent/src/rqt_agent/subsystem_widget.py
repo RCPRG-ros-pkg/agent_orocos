@@ -481,60 +481,83 @@ class SubsystemWidget(QWidget):
                 id_positions.append( (ident, id_begin) )
             return id_positions
 
+        def convertToLatex(condition):
+            cond = copy.copy(condition)
+            id_positions = extractIdentifiers(cond)
+
+            # calculate line breaks (on 'and' and on 'or' only)
+            max_line_len = 50
+            last_line_break = -(len(state.name) + len(next_state.name))/2
+            last_and_or = 0
+            line_breaks = []
+            for id_pos in id_positions:
+                if id_pos[0] == 'and' or id_pos[0] == 'or':
+                    if id_pos[1]-last_line_break > max_line_len:
+                        line_breaks.append(id_pos[1])
+                        last_line_break = id_pos[1]
+                    last_and_or = id_pos[1]
+
+            for br in reversed(line_breaks):
+                cond = cond[0:br] + "\\\\" + cond[br:]
+
+            # create length-sorted list of unique identifiers
+            ids = []
+            for id_pos in id_positions:
+                if not id_pos[0] in ids:
+                    ids.append(id_pos[0])
+            ids.sort(key = lambda s: len(s), reverse=True)
+            
+            for i in range(len(ids)):
+                cond = cond.replace(ids[i], "{" + str(i) + "}")
+
+            for i in range(len(ids)):
+                if ids[i] == "and":
+                    ident = " \\wedge "
+                elif ids[i] == "or":
+                    ident = " \\vee "
+                elif ids[i] == "not":
+                    ident = " \\neg "
+                else:
+                    ident = " \\text{" + ids[i] + "} "
+                cond = cond.replace("{" + str(i) + "}", ident)
+            return cond
+
         latex_formulas = []
         file_names = []
 
         print "subsystem name: " + self.subsystem_name
-        #edges_counter = 0
         for state in subsystem_info.state_machine:
             print "  state: " + state.name
             for next_state in state.next_states:
-
-                init_cond = copy.copy(next_state.init_cond)
-                id_positions = extractIdentifiers(init_cond)
-
-                # calculate line breaks (on 'and' and on 'or' only)
-                max_line_len = 50
-                last_line_break = -(len(state.name) + len(next_state.name))/2
-                last_and_or = 0
-                line_breaks = []
-                for id_pos in id_positions:
-                    if id_pos[0] == 'and' or id_pos[0] == 'or':
-                        if id_pos[1]-last_line_break > max_line_len:
-                            line_breaks.append(id_pos[1])
-                            last_line_break = id_pos[1]
-                        last_and_or = id_pos[1]
-
-                for br in reversed(line_breaks):
-                    init_cond = init_cond[0:br] + "\\\\" + init_cond[br:]
-
-                # create length-sorted list of unique identifiers
-                ids = []
-                for id_pos in id_positions:
-                    if not id_pos[0] in ids:
-                        ids.append(id_pos[0])
-                ids.sort(key = lambda s: len(s), reverse=True)
-                
-                for i in range(len(ids)):
-                    init_cond = init_cond.replace(ids[i], "{" + str(i) + "}")
-
-                for i in range(len(ids)):
-                    if ids[i] == "and":
-                        ident = " \\wedge "
-                    elif ids[i] == "or":
-                        ident = " \\vee "
-                    elif ids[i] == "not":
-                        ident = " \\neg "
-                    else:
-                        ident = " \\text{" + ids[i] + "} "
-                    init_cond = init_cond.replace("{" + str(i) + "}", ident)
-                #init_cond = "\sigma_{" + str(edges_counter) + "} = " + init_cond
-                init_cond = "\sigma_{" + latex_equations.toMathText(state.name) + "," + latex_equations.toMathText(next_state.name) + "} = " + init_cond
-
+                init_cond = convertToLatex(next_state.init_cond)
+                init_cond = "\\sigma_{" + latex_equations.toMathText(state.name) + "," + latex_equations.toMathText(next_state.name) + "} = " + init_cond
                 latex_formulas.append(init_cond)
                 file_names.append(self.subsystem_name + "_ " + state.name + "_" + next_state.name + "_init")
 
-                #edges_counter += 1
+            term_cond = None
+            err_cond = None
+            for behavior_name in state.behavior_names:
+                for b in subsystem_info.behaviors:
+                    if b.name == behavior_name:
+                        if term_cond == None:
+                            term_cond = "(" + b.terminal_condition + ")"
+                        else:
+                            term_cond = term_cond + " or (" + b.terminal_condition + ")"
+                        if err_cond == None:
+                            err_cond = "(" + b.error_condition + ")"
+                        else:
+                            err_cond = err_cond + " or (" + b.error_condition + ")"
+                        break
+
+            term_cond = convertToLatex(term_cond)
+            term_cond = "\\tau_{" + latex_equations.toMathText(state.name) + "} = " + term_cond
+            latex_formulas.append(term_cond)
+            file_names.append(self.subsystem_name + "_ " + state.name + "_" + next_state.name + "_term")
+
+            err_cond = convertToLatex(err_cond)
+            err_cond = "\\epsilon_{" + latex_equations.toMathText(state.name) + "} = " + err_cond
+            latex_formulas.append(err_cond)
+            file_names.append(self.subsystem_name + "_ " + state.name + "_" + next_state.name + "_err")
 
         with open("formulas.tex", 'w') as outfile:
             for i in range(len(latex_formulas)):
