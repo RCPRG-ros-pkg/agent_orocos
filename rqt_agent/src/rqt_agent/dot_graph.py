@@ -33,6 +33,7 @@
 import tempfile
 import os
 import subprocess
+import latex_equations
 
 class Graph:
     class Node:
@@ -81,7 +82,7 @@ class Graph:
                 for i in range(len(e.latex_label)):
                     latex = e.latex_label[i]
                     if latex == None:
-                        latex = '\\text{' + e.label[i].replace('_', '\_') + '}'
+                        latex = latex_equations.toMathText(e.label[i])
                     edge_latex_str += sep + latex
                     sep = ' \\\\ '
 
@@ -140,34 +141,7 @@ class Graph:
     def exportToPdf(self, filename):
         dot, eps_file_list, latex_formulas = self.generateDotFile(draw_unconnected=False, use_latex=True)
 
-        in_read, in_write = os.pipe()
-        os.write(in_write, "\\documentclass{minimal}\n")
-        os.write(in_write, "\\usepackage{amsmath}\n")
-        os.write(in_write, "\\usepackage{mathtools}\n")
-        os.write(in_write, "\\begin{document}\n")
-
-        new_page = False
-        for f in latex_formulas:
-            if new_page:
-                os.write(in_write, "\\clearpage\n")
-            new_page = True
-            os.write(in_write, "\\begin{gather*}" + f + "\\end{gather*}\n")
-
-        os.write(in_write, "\\end{document}\n")
-        os.close(in_write)
-
-        # generate dvi file from latex document
-        subprocess.call(['latex', '-output-directory=/tmp'], stdin=in_read)
-
-        page_num = 1
-        for (handle, path) in eps_file_list:
-            subprocess.call(['dvips', '/tmp/texput.dvi', '-pp', str(page_num), '-o', '/tmp/texput.ps'])
-            subprocess.call(['ps2eps', '/tmp/texput.ps', '-f'])
-            with open('/tmp/texput.eps', 'r') as infile:
-                data = infile.read()
-            with open(path, 'w') as outfile:
-                outfile.write(data)
-            page_num += 1
+        latex_equations.exportToEpsList(eps_file_list, latex_formulas)
 
         # generate eps
         in_read, in_write = os.pipe()
@@ -175,14 +149,9 @@ class Graph:
         os.close(in_write)
         subprocess.call(['dot', '-Teps', '-o'+filename+'.eps'], stdin=in_read)
 
-        for (handle, file_name) in eps_file_list:
-            os.close(handle)
-            os.remove(file_name)
-        os.remove('/tmp/texput.dvi')
-        os.remove('/tmp/texput.ps')
-        os.remove('/tmp/texput.eps')
+        latex_equations.removeEpsListFiles(eps_file_list)
 
-        subprocess.call(['epspdf', filename+'.eps', filename], stdin=in_read)
+        subprocess.call(['epspdf', filename+'.eps', filename])
         os.remove(filename+'.eps') 
 
     def exportToPlain(self):

@@ -34,6 +34,7 @@ from __future__ import division
 import os
 import math
 import subprocess
+import copy
 
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Qt, QTimer, Signal, Slot, QRectF, QPointF, QSize, QRect, QPoint
@@ -57,6 +58,7 @@ import fsm_graph
 import subsystem_components
 import subsystem_state_history
 import dot_graph
+import latex_equations
 
 class SubsystemWidget(QWidget):
     """
@@ -424,7 +426,7 @@ class SubsystemWidget(QWidget):
         g = dot_graph.Graph()
 
         print "subsystem name: " + self.subsystem_name
-        edges_counter = 0
+        #edges_counter = 0
         for state in subsystem_info.state_machine:
             # domyslnie przyjmujemy, ze stan jest niepodlaczony
             # trzeba jeszcze obsluzyc jak faktycznie nie bedzie nastepnikow
@@ -432,24 +434,124 @@ class SubsystemWidget(QWidget):
             n = dot_graph.Graph.Node()
             n.label = state.name
             g.nodes[state.name] = n
-            #print "state", state.name
+            print "  state: " + state.name
+            print "    behaviors:"
+            for b in state.behavior_names:
+                print "      " + b
 
             for next_state in state.next_states:
                 #print "    next state", next_state.name
                 e = dot_graph.Graph.Edge()
                 e.id_from = state.name
                 e.id_to = next_state.name
-                e.addLabel('s' + str(edges_counter), '\sigma_{' + str(edges_counter) + '}')
-                print "    s_" + str(edges_counter) + " = " + next_state.init_cond
-                #TODO:
-                #latex_cond = "\sigma_{" + str(edges_counter) + "} = " + next_state.init_cond
-                edges_counter += 1
+                #e.addLabel('s' + str(edges_counter), '\sigma_{' + str(edges_counter) + '}')
+                #print "    s_" + str(edges_counter) + " = " + next_state.init_cond
+                e.addLabel('s_{' + state.name + "," + next_state.name + "}", '\sigma_{' + latex_equations.toMathText(state.name) + "," + latex_equations.toMathText(next_state.name) + '}')
+                print "    s_{" + state.name + "," + next_state.name + "} = " + next_state.init_cond
+                #edges_counter += 1
                 g.edges.append(e)
+        for behavior in subsystem_info.behaviors:
+            print "  behavior: " + behavior.name
+            print "    terminal_condition: " + behavior.terminal_condition
+            print "    error_condition: " + behavior.error_condition
+
         return g
             
     def exportStateMachineGraph(self):
         self.state_machine_graph.exportToPdf(self.subsystem_name+"_fsm.pdf")
-            
+        self.exportStateMachineConditionsToPdf(self.subsystem_info)
+
+    def exportStateMachineConditionsToPdf(self, subsystem_info):
+        def extractIdentifiers(s):
+            id_positions = []
+            iterating_identifier = False
+            id_begin = None
+            for i in range(len(s)):
+                if not iterating_identifier:
+                    if s[i].isalpha() or s[i] == '_':
+                        iterating_identifier = True
+                        id_begin = i
+                else:
+                    if not s[i].isalnum() and s[i] != '_':
+                        iterating_identifier = False
+                        ident = s[id_begin:i]
+                        id_positions.append( (ident, id_begin) )
+            if iterating_identifier:
+                ident = s[id_begin:]
+                id_positions.append( (ident, id_begin) )
+            return id_positions
+
+        latex_formulas = []
+        file_names = []
+
+        print "subsystem name: " + self.subsystem_name
+        #edges_counter = 0
+        for state in subsystem_info.state_machine:
+            print "  state: " + state.name
+            for next_state in state.next_states:
+
+                init_cond = copy.copy(next_state.init_cond)
+                id_positions = extractIdentifiers(init_cond)
+
+                # calculate line breaks (on 'and' and on 'or' only)
+                max_line_len = 50
+                last_line_break = -(len(state.name) + len(next_state.name))/2
+                last_and_or = 0
+                line_breaks = []
+                for id_pos in id_positions:
+                    if id_pos[0] == 'and' or id_pos[0] == 'or':
+                        if id_pos[1]-last_line_break > max_line_len:
+                            line_breaks.append(id_pos[1])
+                            last_line_break = id_pos[1]
+                        last_and_or = id_pos[1]
+
+                for br in reversed(line_breaks):
+                    init_cond = init_cond[0:br] + "\\\\" + init_cond[br:]
+
+                # create length-sorted list of unique identifiers
+                ids = []
+                for id_pos in id_positions:
+                    if not id_pos[0] in ids:
+                        ids.append(id_pos[0])
+                ids.sort(key = lambda s: len(s), reverse=True)
+                
+                for i in range(len(ids)):
+                    init_cond = init_cond.replace(ids[i], "{" + str(i) + "}")
+
+                for i in range(len(ids)):
+                    if ids[i] == "and":
+                        ident = " \\wedge "
+                    elif ids[i] == "or":
+                        ident = " \\vee "
+                    elif ids[i] == "not":
+                        ident = " \\neg "
+                    else:
+                        ident = " \\text{" + ids[i] + "} "
+                    init_cond = init_cond.replace("{" + str(i) + "}", ident)
+                #init_cond = "\sigma_{" + str(edges_counter) + "} = " + init_cond
+                init_cond = "\sigma_{" + latex_equations.toMathText(state.name) + "," + latex_equations.toMathText(next_state.name) + "} = " + init_cond
+
+                latex_formulas.append(init_cond)
+                file_names.append(self.subsystem_name + "_ " + state.name + "_" + next_state.name + "_init")
+
+                #edges_counter += 1
+
+        with open("formulas.tex", 'w') as outfile:
+            for i in range(len(latex_formulas)):
+                outfile.write("% " + file_names[i] + "\n")
+                #outfile.write("\\begin{gather*}\n" + latex_formulas[i] + "\n\\end{gather*}\n\n")
+                outfile.write(latex_formulas[i] + "\n")
+
+        # export to pdf
+#        eps_file_list = []
+#        for i in range(len(latex_formulas)):
+#            handle, path = tempfile.mkstemp(suffix=".eps")
+#            eps_file_list.append( (handle, path) )
+#        latex_equations.exportToEpsList(eps_file_list, latex_formulas)
+#        for i in range(len(latex_formulas)):
+#            (handle, path) = eps_file_list[i]
+#            subprocess.call(['epspdf', path, file_names[i]+".pdf"])
+
     def update_subsystem(self, msg):
         for value in msg.status[1].values:
             if value.key == 'master_component':

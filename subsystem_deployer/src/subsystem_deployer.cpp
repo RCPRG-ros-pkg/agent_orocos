@@ -328,6 +328,8 @@ class SubsystemDeployerRosService : public SubsystemDeployerRosServiceBase {
       for (int j = 0; j < r.size(); ++j) {
         bi.running_components.push_back(r[j]);
       }
+      bi.terminal_condition = behaviors[i]->getTerminalCondition();
+      bi.error_condition = behaviors[i]->getErrorCondition();
       res.behaviors.push_back(bi);
 
 //            Logger::log() << Logger::Info << "behavior " << i << ": "
