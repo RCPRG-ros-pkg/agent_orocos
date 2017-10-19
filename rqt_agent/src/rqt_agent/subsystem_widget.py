@@ -52,6 +52,7 @@ import tempfile
 from rqt_topic.topic_info import TopicInfo
 
 from subsystem_msgs.srv import *
+import subsystem_common.subsystem_diag as subsystem_diag
 
 import behavior_graph
 import fsm_graph
@@ -218,65 +219,6 @@ class SubsystemWidget(QWidget):
             return None
 
         return (comp_from.name, port_from, comp_to.name, port_to)
-
-    def parseMasterComponentDiag(self, state):
-        ss_history = []
-        ret_period = "?"
-
-        dom = minidom.parseString(state)
-        mcd = dom.getElementsByTagName("mcd")
-        if len(mcd) != 1:
-            return (ss_history, ret_period)
-
-        hist = mcd[0].getElementsByTagName("h")
-        if len(hist) == 1:
-            ss_list = hist[0].getElementsByTagName("ss")
-            for ss in ss_list:
-#                print "ss", ss
-#                print dir(ss.getAttribute("n")) # string
-                ss_history.append( (ss.getAttribute("n"), ss.getAttribute("r"), ss.getAttribute("t"), ss.getAttribute("e")) )
-
-        current_predicates = mcd[0].getElementsByTagName("pr")
-        curr_pred = None
-        if len(current_predicates) == 1:
-            curr_pred = current_predicates[0].getAttribute("v")
-
-        period = mcd[0].getElementsByTagName("p")
-        ret_period = None
-        if len(period) == 1:
-            ret_period = period[0].childNodes[0].data
-
-        time_tf = mcd[0].getElementsByTagName("t_tf")
-        ret_time_tf = None
-        if len(time_tf) == 1:
-            ret_time_tf = time_tf[0].childNodes[0].data
-
-        time_int1 = mcd[0].getElementsByTagName("int1")
-        ret_time_int1 = None
-        if len(time_int1) == 1:
-            ret_time_int1 = time_int1[0].childNodes[0].data
-
-        time_int2 = mcd[0].getElementsByTagName("int2")
-        ret_time_int2 = None
-        if len(time_int2) == 1:
-            ret_time_int2 = time_int2[0].childNodes[0].data
-
-        time_int3 = mcd[0].getElementsByTagName("int3")
-        ret_time_int3 = None
-        if len(time_int3) == 1:
-            ret_time_int3 = time_int3[0].childNodes[0].data
-
-        time_int4 = mcd[0].getElementsByTagName("int4")
-        ret_time_int4 = None
-        if len(time_int4) == 1:
-            ret_time_int4 = time_int4[0].childNodes[0].data
-
-        time_int5 = mcd[0].getElementsByTagName("int5")
-        ret_time_int5 = None
-        if len(time_int5) == 1:
-            ret_time_int5 = time_int5[0].childNodes[0].data
-
-        return (ss_history, curr_pred, ret_period, float(ret_time_int1), float(ret_time_int2), float(ret_time_int3), float(ret_time_int4), float(ret_time_int5))
 
     def exportBehaviorGraph(self, graph_name):
         self.behavior_graphs[graph_name].exportToPdf(self.subsystem_name+"_"+graph_name+".pdf")
@@ -654,16 +596,15 @@ class SubsystemWidget(QWidget):
 
             self.initialized = True
 
-        mcd = self.parseMasterComponentDiag(self.state)
-        if len(mcd[0]) > 0:
-            self.SubsystemState.setText(mcd[0][0][0])
+        mcd = subsystem_diag.parseMasterComponentDiag(self.state)
+        if len(mcd.history) > 0:
+            self.SubsystemState.setText(mcd.history[0].state_name)
             self.dialogStateHistory.updateState(mcd)
             self.dialogStateMachineGraph.updateState(mcd)
-            self.PeriodWall.setText(mcd[2] + ', ' + str(mcd[3]*1000.0) + 'ms, ' + str(mcd[4]*1000.0) + 'ms, ' + str(mcd[5]*1000.0) + 'ms, ' + str(mcd[6]*1000.0) + 'ms, ' + str(mcd[7]*1000.0) + 'ms')
+            self.PeriodWall.setText(str(mcd.current_period*1000.0) + 'ms')
         else:
             self.SubsystemState.setText("unknown")
-
-#            self.SubsystemBehavior.setText(behavior_name.strip())
+            self.PeriodWall.setText("unknown")
 
     def getCommonBuffers(self, subsystem):
         if not self.isInitialized() or not subsystem.isInitialized():

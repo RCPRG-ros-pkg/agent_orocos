@@ -127,21 +127,21 @@ class StateHistoryDialog(QDialog):
         self.tableWidget.setColumnWidth(2, 75)
 
     def updateState(self, mcd):
-        hist = mcd[0]
-        if self.tableWidget.rowCount() != len(hist):
-            self.tableWidget.setRowCount( len(hist) )
+        if self.tableWidget.rowCount() != len(mcd.history):
+            self.tableWidget.setRowCount( len(mcd.history) )
         row = 0
-        curr_pred = mcd[1].split(",")
+        curr_pred = mcd.current_predicates.split(",")
         curr_pred_v = []
         for cp in curr_pred:
             k_v = cp.split(":")
             if len(k_v) == 2:
                 curr_pred_v.append(k_v[1])
 
-        for ss in hist:
-            for col in range(3):
-                self.tableWidget.setItem(row, col, QTableWidgetItem(ss[col]))
-            pred = ss[3].split(",")
+        for ss in mcd.history:
+            self.tableWidget.setItem(row, 0, QTableWidgetItem(ss.state_name))
+            self.tableWidget.setItem(row, 1, QTableWidgetItem(ss.reason))
+            self.tableWidget.setItem(row, 2, QTableWidgetItem(str(ss.switch_interval)))
+            pred = ss.predicates.split(",")
 
             if not self.initialized:
                 self.initialized = True

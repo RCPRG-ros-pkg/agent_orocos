@@ -59,3 +59,5 @@ orocos_install_headers(
   DIRECTORY include/${PROJECT_NAME}/
 )
 
+catkin_python_setup()
+

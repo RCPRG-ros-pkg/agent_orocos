@@ -410,10 +410,7 @@ class StateMachineGraphDialog(QDialog):
     def updateState(self, mcd):
         if not self.initialized:
             return
-        
-        active_state_name = mcd[0][0][0]
-        # print "active_state_name: ", active_state_name
-       
+        active_state_name = mcd.history[0].state_name
         for comp_name in self.nodes:
             if comp_name == active_state_name:
                 self.nodes[comp_name].setBrush(getComponentBrush('R'))
