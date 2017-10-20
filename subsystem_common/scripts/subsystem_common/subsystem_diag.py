@@ -27,11 +27,14 @@ This file contains Python classes and routines for parsing subsystem state strin
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#import diagnostic_msgs.msg
-
 import xml.dom.minidom as minidom
 
 class SubsystemDiag:
+    class PredicateValue:
+        def __init__(self):
+            self.name = None
+            self.value = None
+
     class StateSwitchEvent:
         def __init__(self):
             self.state_name = None
@@ -43,6 +46,24 @@ class SubsystemDiag:
         self.history = []
         self.current_predicates = None
         self.current_period = None
+
+def parsePredicates(pred_str):
+    pred_list = pred_str.split(",")
+    result = []
+    for cp in pred_list:
+        k_v = cp.split(":")
+        if len(k_v) == 2:
+            pv = SubsystemDiag.PredicateValue()
+            pv.name = k_v[0].strip()
+            value_str = k_v[1].strip()
+            if value_str == 't':
+                pv.value = True
+            elif value_str == 'f':
+                pv.value = False
+            else:
+                raise ValueError("wrong predicate value: '" + value_str + "' for predicate: '" + pv.name + "'")
+            result.append(pv)
+    return result
 
 def parseMasterComponentDiag(diag_xml):
     result = SubsystemDiag()
@@ -60,12 +81,12 @@ def parseMasterComponentDiag(diag_xml):
             ss_ev.state_name = ss.getAttribute("n")
             ss_ev.reason = ss.getAttribute("r")
             ss_ev.switch_interval = float(ss.getAttribute("t"))
-            ss_ev.predicates = ss.getAttribute("e")
+            ss_ev.predicates = parsePredicates(ss.getAttribute("e"))
             result.history.append(ss_ev)
 
     current_predicates = mcd[0].getElementsByTagName("pr")
     if len(current_predicates) == 1:
-        result.current_predicates = current_predicates[0].getAttribute("v")
+        result.current_predicates = parsePredicates(current_predicates[0].getAttribute("v"))
 
     period = mcd[0].getElementsByTagName("p")
     if len(period) == 1:
