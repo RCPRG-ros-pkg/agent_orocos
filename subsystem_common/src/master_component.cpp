@@ -683,11 +683,17 @@ void MasterComponent::updateHook() {
         interval5_ = interval5;
     }
 
-    double timeout_s = master_service_->getStateBufferGroup(current_state_id_).min_period - (rtt_rosclock::rtt_wall_now() - time_last_s_).toSec();  // calculate sleep time
-    if (timeout_s > 0) {
+    while (true) {
+        double timeout_s = master_service_->getStateBufferGroup(current_state_id_).min_period - (rtt_rosclock::rtt_now() - time_last_s_).toSec();  // calculate sleep time
+        if (timeout_s <= 0) {
+            break;
+        }
+        if (timeout_s < 0.0001) {
+            timeout_s = 0.0001;
+        }
         usleep( static_cast<int >((timeout_s)*1000000.0) );
     }
-    time_last_s_ = rtt_rosclock::rtt_wall_now();     // save time
+    time_last_s_ = rtt_rosclock::rtt_now();     // save time
 
     if (master_service_->bufferGroupRead( master_service_->getStateBufferGroup(current_state_id_).id, read_buffer_timeout_ )) {
         if (use_sim_time_) {
