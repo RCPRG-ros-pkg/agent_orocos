@@ -45,7 +45,7 @@ import tempfile
 from rqt_topic.topic_info import TopicInfo
 
 from subsystem_msgs.srv import *
-import subsystem_common.subsystem_diag as subsystem_diag
+import subsystem_common
 
 import behavior_graph
 import fsm_graph
@@ -589,7 +589,7 @@ class SubsystemWidget(QWidget):
 
             self.initialized = True
 
-        mcd = subsystem_diag.parseMasterComponentDiag(self.state)
+        mcd = subsystem_common.parseMasterComponentDiag(self.state)
         if len(mcd.history) > 0:
             self.SubsystemState.setText(mcd.history[0].state_name)
             self.dialogStateHistory.updateState(mcd)
