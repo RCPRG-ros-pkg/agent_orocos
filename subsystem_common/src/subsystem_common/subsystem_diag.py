@@ -37,12 +37,14 @@ class SubsystemDiag:
     class StateSwitchEvent:
         def __init__(self):
             self.state_name = None
+            self.prev_state_name = None
             self.reason = None
             self.switch_interval = None
             self.predicates = None
 
     def __init__(self):
         self.history = []
+        self.state_switch_info = []
         self.current_predicates = None
         self.current_period = None
 
@@ -82,6 +84,18 @@ def parseMasterComponentDiag(diag_xml):
             ss_ev.switch_interval = float(ss.getAttribute("t"))
             ss_ev.predicates = parsePredicates(ss.getAttribute("e"))
             result.history.append(ss_ev)
+
+    si = mcd[0].getElementsByTagName("si")
+    if len(si) == 1:
+        ss_list = si[0].getElementsByTagName("ss")
+        for ss in ss_list:
+            ss_ev = SubsystemDiag.StateSwitchEvent()
+            ss_ev.state_name = ss.getAttribute("n")
+            ss_ev.prev_state_name = ss.getAttribute("p")
+            ss_ev.reason = ss.getAttribute("r")
+            ss_ev.switch_interval = float(ss.getAttribute("t"))
+            ss_ev.predicates = parsePredicates(ss.getAttribute("e"))
+            result.state_switch_info.append(ss_ev)
 
     current_predicates = mcd[0].getElementsByTagName("pr")
     if len(current_predicates) == 1:

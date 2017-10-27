@@ -45,6 +45,14 @@ class StateHistoryDialog(QDialog):
     def closeClick(self):
         self.close()
 
+    @Slot()
+    def radio_historyClick(self):
+        self._mode = "history"
+
+    @Slot()
+    def radio_switchesClick(self):
+        self._mode = "switches"
+
     class MyStyle(QCommonStyle):
         def drawControl (self, element, opt, painter, widget=None):
 
@@ -101,14 +109,19 @@ class StateHistoryDialog(QDialog):
 
         self.setWindowTitle(subsystem_name + " - state history")
 
+        self._mode = "history"
+
+        # connect slots
         self.pushButton_close.clicked.connect(self.closeClick)
+        self.radio_history.clicked.connect(self.radio_historyClick)
+        self.radio_switches.clicked.connect(self.radio_switchesClick)
+
+        self.initialized = False
 
         hdr = self.MyHorizHeader(self.tableWidget)
         hdr.setMinimumSectionSize(40)
         hdr.setDefaultSectionSize(40)
         self.tableWidget.setHorizontalHeader(hdr)
-
-        self.initialized = False
         item0 = QTableWidgetItem("state")
         item1 = QTableWidgetItem("reason")
         item2 = QTableWidgetItem("time")
@@ -119,10 +132,21 @@ class StateHistoryDialog(QDialog):
         self.tableWidget.setColumnWidth(1, 50)
         self.tableWidget.setColumnWidth(2, 75)
 
+#        hdr_2 = self.MyHorizHeader(self.tableWidget_2)
+#        hdr_2.setMinimumSectionSize(40)
+#        hdr_2.setDefaultSectionSize(40)
+#        self.tableWidget_2.setHorizontalHeader(hdr_2)
+#        item0 = QTableWidgetItem("state")
+#        item1 = QTableWidgetItem("reason")
+#        item2 = QTableWidgetItem("time")
+#        self.tableWidget_2.setHorizontalHeaderItem (0, item0)
+#        self.tableWidget_2.setHorizontalHeaderItem (1, item1)
+#        self.tableWidget_2.setHorizontalHeaderItem (2, item2)
+#        self.tableWidget_2.setColumnWidth(0, 100)
+#        self.tableWidget_2.setColumnWidth(1, 50)
+#        self.tableWidget_2.setColumnWidth(2, 75)
+
     def updateState(self, mcd):
-        if self.tableWidget.rowCount() != len(mcd.history):
-            self.tableWidget.setRowCount( len(mcd.history) )
-        row = 0
         curr_pred_v = []
         for pv in mcd.current_predicates:
             if pv.value == True:
@@ -132,37 +156,63 @@ class StateHistoryDialog(QDialog):
             else:
                 raise ValueError("wrong predicate value: '" + str(pv.value) + "' for predicate: '" + pv.name + "'")
 
-        for ss in mcd.history:
-            self.tableWidget.setItem(row, 0, QTableWidgetItem(ss.state_name))
-            self.tableWidget.setItem(row, 1, QTableWidgetItem(ss.reason))
-            self.tableWidget.setItem(row, 2, QTableWidgetItem(str(ss.switch_interval)))
-
-            if not self.initialized:
-                self.initialized = True
-                predicates = []
-                for pv in ss.predicates:
-                    predicates.append( pv.name )
-
-                self.tableWidget.setColumnCount(len(predicates)+3)
-                idx = 3
-                for p in predicates:
-                    item = QTableWidgetItem(p)
-                    self.tableWidget.setHorizontalHeaderItem(idx, item)
-                    idx += 1
-
-            idx = 0
-            for pv in ss.predicates:
-                if pv.value == True:
-                    p_str = "t"
-                elif pv.value == False:
-                    p_str = "f"
-                else:
-                    raise ValueError("wrong predicate value: '" + str(pv.value) + "' for predicate: '" + pv.name + "'")
-                if row == 0:
-                    self.tableWidget.setItem(row, 3+idx, QTableWidgetItem(p_str + " ("+curr_pred_v[idx]+")"))
-                else:
-                    self.tableWidget.setItem(row, 3+idx, QTableWidgetItem(p_str))
+        if not self.initialized:
+            self.initialized = True
+            predicates = []
+            for pv in mcd.current_predicates:
+                predicates.append( pv.name )
+            self.tableWidget.setColumnCount(len(predicates)+3)
+#            self.tableWidget_2.setColumnCount(len(predicates)+3)
+            idx = 3
+            for p in predicates:
+                item = QTableWidgetItem(p)
+                self.tableWidget.setHorizontalHeaderItem(idx, item)
+#                item_2 = QTableWidgetItem(p)
+#                self.tableWidget_2.setHorizontalHeaderItem(idx, item_2)
                 idx += 1
-                
-            row = row + 1
+
+        if self._mode == "history":
+            # history
+            if self.tableWidget.rowCount() != len(mcd.history):
+                self.tableWidget.setRowCount( len(mcd.history) )
+            row = 0
+            for ss in mcd.history:
+                self.tableWidget.setItem(row, 0, QTableWidgetItem(ss.state_name))
+                self.tableWidget.setItem(row, 1, QTableWidgetItem(ss.reason))
+                self.tableWidget.setItem(row, 2, QTableWidgetItem(str(ss.switch_interval)))
+                idx = 0
+                for pv in ss.predicates:
+                    if pv.value == True:
+                        p_str = "T"
+                    elif pv.value == False:
+                        p_str = "F"
+                    else:
+                        raise ValueError("wrong predicate value: '" + str(pv.value) + "' for predicate: '" + pv.name + "'")
+                    if row == 0:
+                        self.tableWidget.setItem(row, 3+idx, QTableWidgetItem(p_str + " ("+curr_pred_v[idx]+")"))
+                    else:
+                        self.tableWidget.setItem(row, 3+idx, QTableWidgetItem(p_str))
+                    idx += 1
+                row = row + 1
+        elif self._mode == "switches":
+            # state switch info
+            if self.tableWidget.rowCount() != len(mcd.state_switch_info):
+                self.tableWidget.setRowCount( len(mcd.state_switch_info) )
+            row = 0
+            state_switch_info = sorted(mcd.state_switch_info, key=lambda ss: ss.switch_interval)
+            for ss in state_switch_info:
+                self.tableWidget.setItem(row, 0, QTableWidgetItem(ss.prev_state_name + " -> " + ss.state_name))
+                self.tableWidget.setItem(row, 1, QTableWidgetItem(ss.reason))
+                self.tableWidget.setItem(row, 2, QTableWidgetItem(str(ss.switch_interval)))
+                idx = 0
+                for pv in ss.predicates:
+                    if pv.value == True:
+                        p_str = "T"
+                    elif pv.value == False:
+                        p_str = "F"
+                    else:
+                        raise ValueError("wrong predicate value: '" + str(pv.value) + "' for predicate: '" + pv.name + "'")
+                    self.tableWidget.setItem(row, 3+idx, QTableWidgetItem(p_str))
+                    idx += 1
+                row = row + 1
 

@@ -50,6 +50,7 @@ using namespace RTT;
 class DiagStateSwitch {
 public:
     enum Reason {INVALID, INIT, STOP, ERROR};
+    int prev_id_;
     int id_;
     RTT::os::TimeService::nsecs time_;
     Reason reason_;
@@ -86,27 +87,57 @@ public:
         if (h_.size() == 0) {
             return;
         }
+        if (new_state_id < 0 || new_state_id >= states_count_) {
+            RTT::log(RTT::Error) << "addStateSwitch: wrong state id: " << new_state_id << ", should be in range [0, " << (states_count_-1) << "]" << RTT::endlog();
+        }
+        int prev_idx = (idx_+h_.size()-1)%h_.size();
+        int prev_state_id = h_[prev_idx].id_;
         h_[idx_].id_ = new_state_id;
+        h_[idx_].prev_id_ = prev_state_id;
         h_[idx_].time_ = time;
         h_[idx_].reason_ = reason;
         if (pred) {
             *(h_[idx_].pred_) = *pred;
         }
         idx_ = (idx_+1) % h_.size();
+
+        if (prev_state_id >= 0) {
+            for (int i = 0; i < st_.size(); ++i) {
+                if ( (st_[i].id_ == new_state_id && st_[i].prev_id_ == prev_state_id) ||
+                    (st_[i].id_ == -1))
+                {
+                    st_[i].id_ = new_state_id;
+                    st_[i].prev_id_ = prev_state_id;
+                    st_[i].time_ = time;
+                    st_[i].reason_ = reason;
+                    if (pred) {
+                        *(st_[i].pred_) = *pred;
+                    }
+                    break;
+                }
+            }
+        }
     }
 
-    void setSize(size_t size, RTT::OperationCaller<subsystem_common::PredicateListPtr()> subsystem_common::MasterServiceRequester::*func, subsystem_common::MasterServiceRequester& a) {
+    void setSize(size_t size, size_t states_count, RTT::OperationCaller<subsystem_common::PredicateListPtr()> subsystem_common::MasterServiceRequester::*func, subsystem_common::MasterServiceRequester& a) {
         h_.resize(size);
         for (int i = 0; i < h_.size(); ++i) {
             h_[i].id_ = -1;
             h_[i].reason_ = DiagStateSwitch::INVALID;
             h_[i].pred_ = (a.*func)();
         }
+        states_count_ = states_count;
+        st_.resize(states_count*states_count);
+        for (int i = 0; i < st_.size(); ++i) {
+            st_[i].id_ = -1;
+            st_[i].reason_ = DiagStateSwitch::INVALID;
+            st_[i].pred_ = (a.*func)();
+        }
         idx_ = 0;
     }
 
     bool getStateSwitchHistory(int idx, DiagStateSwitch &ss) const {
-        if (idx >= h_.size() || h_.size() == 0) {
+        if (idx < 0 || idx >= h_.size()) {
             return false;
         }
         int i = (idx_-idx-1+h_.size()*2) % h_.size();
@@ -117,10 +148,22 @@ public:
         return true;
     }
 
+    bool getStateSwitchStateList(int idx, DiagStateSwitch &ss) const {
+        if (idx < 0 || idx >= st_.size()) {
+            return false;
+        }
+        if (st_[idx].reason_ == DiagStateSwitch::INVALID) {
+            return false;
+        }
+        ss = st_[idx];
+        return true;
+    }
+
 private:
 
     std::vector<DiagStateSwitch> h_;
-    int idx_;
+    std::vector<DiagStateSwitch> st_;
+    int idx_, states_count_;
 };
 
 class MasterComponent: public RTT::TaskContext {
@@ -145,10 +188,6 @@ public:
 
 private:
     void calculateConflictingComponents();
-    // void printCurrentBehaviors() const;
-    // bool isCurrentBehavior(const std::string& behavior_name) const;
-    // bool isCurrentBehavior(int behavior_idx) const;
-    // int currentBehaviorsCount() const;
     bool isGraphOk() const;
 
     int current_state_id_;
@@ -227,11 +266,12 @@ std::string MasterComponent::getDiag() {
     std::ostringstream strs;
 
     strs << "<mcd>";
+
+    // write states history
     strs << "<h>";
 
     DiagStateSwitchHistory ss;
     diag_bs_sync_.Get(ss);
-
 
     for (int i = 0; ; ++i) {
         DiagStateSwitch s;
@@ -256,11 +296,42 @@ std::string MasterComponent::getDiag() {
              << s.getReasonStr() << "\" t=\"" << switch_interval << "\" e=\""
              << err_str << "\" />";
     }
-
     strs << "</h>";
 
+    // write information about state switch for each state
+    strs << "<si>";
+
+    for (int i = 0;; ++i) {
+        DiagStateSwitch s;
+        if (!ss.getStateSwitchStateList(i, s)) {
+            break;
+        }
+        RTT::os::TimeService::Seconds switch_interval = RTT::nsecs_to_Seconds(last_update_time_ - s.time_);
+
+        std::string err_str;
+        if (s.pred_) {
+            err_str = master_service_->getPredicatesStr(s.pred_);
+        }
+
+        std::string state_name, prev_state_name;
+        if (s.id_ >= 0 && s.prev_id_ >= 0) {
+            state_name = master_service_->getStates()[s.id_]->getName();
+            prev_state_name = master_service_->getStates()[s.prev_id_]->getName();
+        }
+        else {
+            state_name = "INV_ST";
+            prev_state_name = "INV_ST";
+        }
+        strs << "<ss n=\"" << state_name << "\" p=\"" << prev_state_name << "\" r=\""
+             << s.getReasonStr() << "\" t=\"" << switch_interval << "\" e=\""
+             << err_str << "\" />";
+    }
+    strs << "</si>";
+
+    // write predicate list
     strs << "<pr v=\"" << master_service_->getPredicatesStr(predicate_list_) << "\" />";
 
+    // write period
     strs << "<p>" << last_exec_period_ << "</p>";
     strs << "<t_tf>" << scheme_time_ << "</t_tf>";
 
@@ -364,7 +435,7 @@ bool MasterComponent::configureHook() {
         scheme_peers_const_.push_back( scheme_->getPeer(scheme_peers_names[pi]) );
     }
 
-    diag_ss_rt_.setSize(state_switch_history_length_, &subsystem_common::MasterServiceRequester::allocatePredicateList, *master_service_);
+    diag_ss_rt_.setSize(state_switch_history_length_, states.size(), &subsystem_common::MasterServiceRequester::allocatePredicateList, *master_service_);
 
     diag_bs_sync_.data_sample(diag_ss_rt_);
     diag_bs_sync_.Set(diag_ss_rt_);
