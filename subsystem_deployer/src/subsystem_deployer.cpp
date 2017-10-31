@@ -1983,7 +1983,7 @@ bool SubsystemDeployer::runScripts(
   /******************** WARNING ***********************
    *   NO log(...) statements before __os_init() !!!!!
    ***************************************************/
-  bool deploymentOnlyChecked = false;
+//  bool deploymentOnlyChecked = false;
 
   /* Only start the scripts after the Orb was created. Processing of
    scripts stops after the first failed script, and -1 is returned.
@@ -2037,6 +2037,11 @@ bool SubsystemDeployer::runTaskBrowser() {
 
 dc_->shutdownDeployment();
 //            }
+}
+
+void SubsystemDeployer::waitForInterrupt() {
+    dc_->waitForInterrupt();
+    dc_->shutdownDeployment();
 }
 
 boost::shared_ptr<OCL::DeploymentComponent>& SubsystemDeployer::getDc() {

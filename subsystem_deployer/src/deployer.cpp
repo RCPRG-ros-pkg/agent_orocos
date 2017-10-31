@@ -48,8 +48,8 @@ int main(int argc, char** argv)
 	std::string                 siteFile;      // "" means use default in DeploymentComponent.cpp
     std::vector<std::string>    scriptFiles;
 	std::string                 name("Deployer");
-    bool                        deploymentOnlyChecked = false;
 	int							minNumberCPU = 0;
+    bool                        runTaskBrowser = false;
 
     // were we given non-deployer options? ie find "--"
     int     optIndex    = 0;
@@ -107,6 +107,10 @@ int main(int argc, char** argv)
             ss >> rt_prio;
             ++i;
         }
+
+        if (strcmp("-t", argv[i]) == 0) {
+            runTaskBrowser = true;
+        }
     }
 
     if (master_package_name.empty()) {
@@ -139,7 +143,12 @@ int main(int argc, char** argv)
             return -5;
         }
 
-        depl.runTaskBrowser();
+        if (runTaskBrowser) {
+            depl.runTaskBrowser();
+        }
+        else {
+            depl.waitForInterrupt();
+        }
 
         __os_exit();
     }

@@ -50,6 +50,7 @@ public:
     bool runScripts(const std::vector<std::string>& scriptFiles);
 
     bool runTaskBrowser();
+    void waitForInterrupt();
 
     boost::shared_ptr<OCL::DeploymentComponent >& getDc();
 
