@@ -270,6 +270,13 @@ def generate_boost_serialization(package, port_def, output_cpp):
         s.write("                else {\n")
         s.write("                    singleStep_ =  RTT::OperationCaller<void()>(singleStepOp);\n")
         s.write("                }\n")
+        s.write("                RTT::OperationInterfacePart *waitForPreviousStepOp = gazebo_rtt_service->getOperation(\"waitForPreviousStep\");\n")
+        s.write("                if (waitForPreviousStepOp == NULL) {\n")
+        s.write("                    RTT::Logger::log() << RTT::Logger::Error << \"the service \" << gazebo_rtt_service->getName() << \" has no matching operation waitForPreviousStep\" << RTT::Logger::endl;\n")
+        s.write("                }\n")
+        s.write("                else {\n")
+        s.write("                    waitForPreviousStep_ =  RTT::OperationCaller<void()>(waitForPreviousStepOp);\n")
+        s.write("                }\n")
         s.write("            }\n")
     s.write("            rtt_rosclock::disable_sim();\n")
 
@@ -568,6 +575,16 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("    }\n\n")
 
 #
+# iterationBegin()
+#
+    s.write("    void iterationBegin() {\n")
+    if sd.trigger_gazebo:
+        s.write("        waitForPreviousStep_();\n")
+    else:
+        s.write("        // do nothing\n")
+    s.write("    }\n\n")
+
+#
 # iterationEnd()
 #
     s.write("    void iterationEnd() {\n")
@@ -576,7 +593,6 @@ def generate_boost_serialization(package, port_def, output_cpp):
     else:
         s.write("        // do nothing\n")
     s.write("    }\n\n")
-
 
 #
 # bufferGroupRead()
@@ -710,6 +726,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("\n    RTT::TaskContext* owner_;\n")
     if sd.trigger_gazebo:
         s.write("    RTT::OperationCaller<void()> singleStep_;\n")
+        s.write("    RTT::OperationCaller<void()> waitForPreviousStep_;\n")
 
     for pred in sd.predicates:
         s.write("    predicateFunction pred_" + pred + ";\n")

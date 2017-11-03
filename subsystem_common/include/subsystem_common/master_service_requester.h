@@ -59,6 +59,7 @@ class MasterServiceRequester : public RTT::ServiceRequester {
     , allocatePredicateList("allocatePredicateList")
     , calculatePredicates("calculatePredicates")
     , getPredicatesStr("getPredicatesStr")
+    , iterationBegin("iterationBegin")
     , iterationEnd("iterationEnd")
     , bufferGroupRead("bufferGroupRead")
     , getStateBufferGroup("getStateBufferGroup")
@@ -83,6 +84,7 @@ class MasterServiceRequester : public RTT::ServiceRequester {
     this->addOperationCaller(calculatePredicates);
     this->addOperationCaller(getPredicatesStr);
 
+    this->addOperationCaller(iterationBegin);
     this->addOperationCaller(iterationEnd);
 
     this->addOperationCaller(bufferGroupRead);
@@ -113,6 +115,7 @@ class MasterServiceRequester : public RTT::ServiceRequester {
   RTT::OperationCaller<void(const InputDataConstPtr&, const std::vector<const RTT::TaskContext*>&, PredicateListPtr&) > calculatePredicates;
   RTT::OperationCaller<std::string(const PredicateListConstPtr&) > getPredicatesStr;
 
+  RTT::OperationCaller<void()> iterationBegin;
   RTT::OperationCaller<void()> iterationEnd;
 
   RTT::OperationCaller<bool(size_t, double)> bufferGroupRead;

@@ -67,6 +67,7 @@ class MasterService: public RTT::Service {
     this->addOperation("calculatePredicates", &MasterService::calculatePredicates, this, RTT::ClientThread);
     this->addOperation("getPredicatesStr", &MasterService::getPredicatesStr, this, RTT::ClientThread);
 
+    this->addOperation("iterationBegin", &MasterService::iterationBegin, this, RTT::ClientThread);
     this->addOperation("iterationEnd", &MasterService::iterationEnd, this, RTT::ClientThread);
 
     this->addOperation("bufferGroupRead", &MasterService::bufferGroupRead, this, RTT::ClientThread);
@@ -99,6 +100,7 @@ class MasterService: public RTT::Service {
   // this method may not be RT-safe
   virtual std::string getPredicatesStr(const PredicateListConstPtr&) const = 0;
 
+  virtual void iterationBegin() = 0;
   virtual void iterationEnd() = 0;
 
   virtual bool bufferGroupRead(size_t id, double timeout) = 0;

@@ -623,6 +623,9 @@ void MasterComponent::updateHook() {
     last_exec_period_ = time - last_exec_time_;
     last_exec_time_ = time;
 
+    // iterationBegin callback can be used by e.g. Gazebo simulator
+    master_service_->iterationBegin();
+
     master_service_->getBuffers(in_data_);
     counter_++;
 
