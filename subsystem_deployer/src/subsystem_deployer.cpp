@@ -624,6 +624,7 @@ bool SubsystemDeployer::connectPorts(const std::string& from,
   if (dc_->connect(from, to, cp)) {
     return true;
   } else {
+    RTT::log(RTT::Info) << "Could not create direct connection: between '" << from << "' and '" << to << "', trying to create data converter..." << RTT::endlog();
     RTT::base::PortInterface *pa = strToPort(from);
     RTT::base::PortInterface *pb = strToPort(to);
     if (!pa) {
@@ -675,6 +676,7 @@ bool SubsystemDeployer::connectPorts(const std::string& from,
                    getConnectionNameLatex(from, to), cp));
 
     converter_components_.push_back(dc_->getPeer(comp_name));
+    RTT::log(RTT::Info) << "Created data converter between '" << from << "' and '" << to << "', so the above error is harmless." << RTT::endlog();
     return true;
   }
   return false;
