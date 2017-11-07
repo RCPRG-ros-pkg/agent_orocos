@@ -1,5 +1,6 @@
 ## This file contains Python classes and routines for parsing subsystem state string.
 # @file subsystem_diag.py
+# @ingroup python_api
 
 # Copyright (c) 2014, Robot Control and Pattern Recognition Group, Warsaw University of Technology
 # All rights reserved.
