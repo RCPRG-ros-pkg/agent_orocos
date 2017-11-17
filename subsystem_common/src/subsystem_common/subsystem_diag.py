@@ -81,6 +81,7 @@ def parseMasterComponentDiag(diag_xml):
         for ss in ss_list:
             ss_ev = SubsystemDiag.StateSwitchEvent()
             ss_ev.state_name = ss.getAttribute("n")
+            ss_ev.prev_state_name = ss.getAttribute("p")
             ss_ev.reason = ss.getAttribute("r")
             ss_ev.switch_interval = float(ss.getAttribute("t"))
             ss_ev.predicates = parsePredicates(ss.getAttribute("e"))

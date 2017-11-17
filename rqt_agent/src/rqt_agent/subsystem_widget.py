@@ -396,29 +396,58 @@ class SubsystemWidget(QWidget):
         self.state_machine_graph.exportToPdf(self.subsystem_name+"_fsm.pdf")
         self.exportStateMachineConditionsToPdf(self.subsystem_info)
 
+    def extractIdentifiers(self, s):
+        id_positions = []
+        iterating_identifier = False
+        id_begin = None
+        for i in range(len(s)):
+            if not iterating_identifier:
+                if s[i].isalpha() or s[i] == '_':
+                    iterating_identifier = True
+                    id_begin = i
+            else:
+                if not s[i].isalnum() and s[i] != '_':
+                    iterating_identifier = False
+                    ident = s[id_begin:i]
+                    id_positions.append( (ident, id_begin) )
+        if iterating_identifier:
+            ident = s[id_begin:]
+            id_positions.append( (ident, id_begin) )
+        return id_positions
+
+    def prepareUsedPredicatesInfo(self, subsystem_info):
+        # extract relevant predicates for every possible transition
+        transitions = {}
+
+        for state in subsystem_info.state_machine:
+            term_err_cond_ids = []
+            for behavior_name in state.behavior_names:
+                for b in subsystem_info.behaviors:
+                    if b.name == behavior_name:
+                        id_positions = self.extractIdentifiers(b.terminal_condition)
+                        for id_pos in id_positions:
+                            if id_pos[0] != 'and' and id_pos[0] != 'or' and not id_pos[0] in term_err_cond_ids:
+                                term_err_cond_ids.append(id_pos[0])
+                        id_positions = self.extractIdentifiers(b.error_condition)
+                        for id_pos in id_positions:
+                            if id_pos[0] != 'and' and id_pos[0] != 'or' and not id_pos[0] in term_err_cond_ids:
+                                term_err_cond_ids.append(id_pos[0])
+                        break
+
+            for next_state in state.next_states:
+                id_positions = self.extractIdentifiers(next_state.init_cond)
+                init_cond_ids = []
+                for id_pos in id_positions:
+                    if id_pos[0] != 'and' and id_pos[0] != 'or' and not id_pos[0] in init_cond_ids:
+                        init_cond_ids.append(id_pos[0])
+                transitions[(state.name,next_state.name)] = term_err_cond_ids + init_cond_ids
+        return transitions
+
     def exportStateMachineConditionsToPdf(self, subsystem_info):
-        def extractIdentifiers(s):
-            id_positions = []
-            iterating_identifier = False
-            id_begin = None
-            for i in range(len(s)):
-                if not iterating_identifier:
-                    if s[i].isalpha() or s[i] == '_':
-                        iterating_identifier = True
-                        id_begin = i
-                else:
-                    if not s[i].isalnum() and s[i] != '_':
-                        iterating_identifier = False
-                        ident = s[id_begin:i]
-                        id_positions.append( (ident, id_begin) )
-            if iterating_identifier:
-                ident = s[id_begin:]
-                id_positions.append( (ident, id_begin) )
-            return id_positions
 
         def convertToLatex(condition):
             cond = copy.copy(condition)
-            id_positions = extractIdentifiers(cond)
+            id_positions = self.extractIdentifiers(cond)
 
             # calculate line breaks (on 'and' and on 'or' only)
             max_line_len = 50
@@ -530,7 +559,7 @@ class SubsystemWidget(QWidget):
             for conn in self.subsystem_info.component_connections:
                 self.all_component_connections.append( (conn.component_from, conn.port_from, conn.component_to, conn.port_to) )
 
-
+            self.dialogStateHistory.setUsedPredicatesInfo(self.prepareUsedPredicatesInfo(self.subsystem_info))
         # behaviors
 
             behavior_graphs_list = ["<all>"]#, "<always running>"]

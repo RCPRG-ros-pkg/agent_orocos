@@ -285,14 +285,20 @@ std::string MasterComponent::getDiag() {
             err_str = master_service_->getPredicatesStr(s.pred_);
         }
 
-        std::string state_name;
+        std::string state_name, prev_state_name;
         if (s.id_ >= 0) {
             state_name = master_service_->getStates()[s.id_]->getName();
+            if (s.prev_id_ >= 0) {
+                prev_state_name = master_service_->getStates()[s.prev_id_]->getName();
+            }
+            else {
+                prev_state_name = "";
+            }
         }
         else {
             state_name = "INV_BEH";
         }
-        strs << "<ss n=\"" << state_name << "\" r=\""
+        strs << "<ss n=\"" << state_name << "\" p=\"" << prev_state_name << "\" r=\""
              << s.getReasonStr() << "\" t=\"" << switch_interval << "\" e=\""
              << err_str << "\" />";
     }

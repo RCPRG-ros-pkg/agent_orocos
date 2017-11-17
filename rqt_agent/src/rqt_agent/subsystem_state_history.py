@@ -146,6 +146,11 @@ class StateHistoryDialog(QDialog):
 #        self.tableWidget_2.setColumnWidth(1, 50)
 #        self.tableWidget_2.setColumnWidth(2, 75)
 
+        self.used_predicates_info = None
+
+    def setUsedPredicatesInfo(self, used_predicates_info):
+        self.used_predicates_info = used_predicates_info
+
     def updateState(self, mcd):
         curr_pred_v = []
         for pv in mcd.current_predicates:
@@ -182,16 +187,25 @@ class StateHistoryDialog(QDialog):
                 self.tableWidget.setItem(row, 2, QTableWidgetItem(str(ss.switch_interval)))
                 idx = 0
                 for pv in ss.predicates:
+                    pred_used = False
+                    if self.used_predicates_info != None and (ss.prev_state_name, ss.state_name) in self.used_predicates_info:
+                        if pv.name in self.used_predicates_info[(ss.prev_state_name, ss.state_name)]:
+                            pred_used = True
                     if pv.value == True:
                         p_str = "T"
                     elif pv.value == False:
                         p_str = "F"
                     else:
                         raise ValueError("wrong predicate value: '" + str(pv.value) + "' for predicate: '" + pv.name + "'")
+
                     if row == 0:
-                        self.tableWidget.setItem(row, 3+idx, QTableWidgetItem(p_str + " ("+curr_pred_v[idx]+")"))
+                        item = QTableWidgetItem(p_str + " ("+curr_pred_v[idx]+")")
                     else:
-                        self.tableWidget.setItem(row, 3+idx, QTableWidgetItem(p_str))
+                        item = QTableWidgetItem(p_str)
+                    if pred_used:
+                        item.setBackground(QBrush(QColor(0,255,0)))
+
+                    self.tableWidget.setItem(row, 3+idx, item)
                     idx += 1
                 row = row + 1
         elif self._mode == "switches":
@@ -204,15 +218,23 @@ class StateHistoryDialog(QDialog):
                 self.tableWidget.setItem(row, 0, QTableWidgetItem(ss.prev_state_name + " -> " + ss.state_name))
                 self.tableWidget.setItem(row, 1, QTableWidgetItem(ss.reason))
                 self.tableWidget.setItem(row, 2, QTableWidgetItem(str(ss.switch_interval)))
+
                 idx = 0
                 for pv in ss.predicates:
+                    pred_used = False
+                    if self.used_predicates_info != None and (ss.prev_state_name, ss.state_name) in self.used_predicates_info:
+                        if pv.name in self.used_predicates_info[(ss.prev_state_name, ss.state_name)]:
+                            pred_used = True
                     if pv.value == True:
                         p_str = "T"
                     elif pv.value == False:
                         p_str = "F"
                     else:
                         raise ValueError("wrong predicate value: '" + str(pv.value) + "' for predicate: '" + pv.name + "'")
-                    self.tableWidget.setItem(row, 3+idx, QTableWidgetItem(p_str))
+                    item = QTableWidgetItem(p_str)
+                    if pred_used:
+                        item.setBackground(QBrush(QColor(0,255,0)))
+                    self.tableWidget.setItem(row, 3+idx, item)
                     idx += 1
                 row = row + 1
 
