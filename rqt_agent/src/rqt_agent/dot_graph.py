@@ -45,9 +45,16 @@ class Graph:
             self.label.append(label)
             self.latex_label.append(latex_label)
 
-    def __init__(self):
+    def __init__(self, shape=None):
         self.nodes = {}
         self.edges = []
+
+        if shape == "rounded_box":
+            self.shape_str = "shape=box; style=rounded;"
+        elif shape == "ellipse" or shape == None:
+            self.shape_str = "shape=ellipse;"
+        else:
+            raise
 
     def getEdge(self, id_from, id_to):
         for e in self.edges:
@@ -122,11 +129,11 @@ class Graph:
                     handle, path = tempfile.mkstemp(suffix=".eps")
                     eps_file_list.append( (handle, path) )
                     latex_formulas.append( latex_label )
-                dot += n.label + " [label=\"\"; image=\"" + path + "\"];\n"
+                dot += n.label + " [" + self.shape_str + " label=\"\"; image=\"" + path + "\"];\n"
         else:
             for name in self.nodes:
                 n = self.nodes[name]
-                dot += n.label + " [label=\"" + n.label + "\"];\n"
+                dot += n.label + " [" + self.shape_str + " label=\"" + n.label + "\"];\n"
 
         dot     += "}\n"
         return dot, eps_file_list, latex_formulas

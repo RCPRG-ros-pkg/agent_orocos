@@ -23,20 +23,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import division
 import os
 import math
-import subprocess
 
 from python_qt_binding import loadUi
-from python_qt_binding.QtCore import Qt, QTimer, Signal, Slot, QRectF, QPointF, QSize, QRect, QPoint
-from python_qt_binding.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QListWidgetItem, QDialog, QGraphicsView, QGraphicsScene, QGraphicsEllipseItem, QGraphicsPathItem, QTableWidgetItem, QHeaderView, QStyle, QCommonStyle
-from python_qt_binding.QtGui import QColor, QPen, QBrush, QPainterPath, QPolygonF, QTransform, QPainter, QIcon, QPixmap, QPaintEvent, QPalette
-from python_qt_binding.QtSvg import QSvgGenerator
-import roslib
+from python_qt_binding.QtCore import Qt, Signal, Slot, QRectF, QPointF, QSize, QRect, QPoint
+from python_qt_binding.QtWidgets import QDialog, QGraphicsView, QGraphicsScene, QGraphicsPathItem, QGraphicsPolygonItem
+from python_qt_binding.QtGui import QColor, QPen, QBrush, QPainterPath, QPolygonF, QTransform, QPainter
 import rospkg
-import rospy
-from rospy.exceptions import ROSException
 
 from subsystem_msgs.srv import *
 
@@ -111,7 +105,7 @@ class GraphView(QGraphicsView):
             super(GraphView, self).mousePressEvent(event)
             selected = False
             for item in self.items():
-                if type(item) is QGraphicsEllipseItem:
+                if type(item) is QGraphicsPolygonItem:
                     if item.contains( self.mapToScene(event.pos()) ):
                         self.selectComponent(item.data(0))
                         selected = True
@@ -252,6 +246,11 @@ class BehaviorGraphDialog(QDialog):
         self.nodes = {}
         self.edges = {}
 
+        self.quater = []
+        for i in range(10):
+            angle = 0.5*i/9.0 * math.pi
+            self.quater.append( QPointF(math.cos(angle), math.sin(angle)) )
+
     def showGraph(self, graph_name):
         if not graph_name in self.scene:
             print "could not show graph " + graph_name
@@ -265,6 +264,25 @@ class BehaviorGraphDialog(QDialog):
 
         self.graphicsView.comp_select_signal.connect(self.componentSelected)
         self.initialized = True
+
+    def generateRoundedBox(self, x, y, w, h):
+        radius = 10.0
+
+        poly = QPolygonF()
+
+        for pt in self.quater:
+            poly.append(QPointF(x + w - radius, y + h - radius) + pt * radius)
+
+        for pt in self.quater:
+            poly.append(QPointF(x + radius, y + h - radius) + QPointF(-pt.y(), pt.x()) * radius)
+
+        for pt in self.quater:
+            poly.append(QPointF(x + radius, y + radius) + -pt * radius)
+
+        for pt in self.quater:
+            poly.append(QPointF(x + w - radius, y + radius) + QPointF(pt.y(), -pt.x()) * radius)
+
+        return poly
 
     def addGraph(self, graph_name, graph_str):
 
@@ -304,7 +322,7 @@ class BehaviorGraphDialog(QDialog):
                 x = self.tfX(items[2])
                 y = self.tfY(items[3])
 
-                self.nodes[graph_name][name] = self.scene[graph_name].addEllipse(x - w/2, y - h/2, w, h)
+                self.nodes[graph_name][name] = self.scene[graph_name].addPolygon(self.generateRoundedBox(x - w/2, y - h/2, w, h))
                 self.nodes[graph_name][name].setData(0, name)
                 text_item = self.scene[graph_name].addSimpleText(name)
                 br = text_item.boundingRect()
@@ -374,16 +392,6 @@ class BehaviorGraphDialog(QDialog):
                     label_item = self.scene[graph_name].addSimpleText(label_text)
                     br = label_item.boundingRect()
                     label_item.setPos(label_pos.x() - br.width()/2, label_pos.y() - br.height()/2)
-
-#        svgGen = QSvgGenerator()
-#        svgGen.setFileName( graph_name + ".svg" )
-#        svgGen.setSize(QSize(self.scX(self.width), self.scY(self.height)))
-#        svgGen.setViewBox(QRect(0, 0, self.scX(self.width), self.scY(self.height)))
-#        svgGen.setTitle("SVG Generator Example Drawing")
-#        svgGen.setDescription("An SVG drawing created by the SVG Generator Example provided with Qt.")
-#        painter = QPainter( svgGen )
-#        self.scene[graph_name].render( painter );
-#        del painter
 
     @Slot()
     def exportClick(self):

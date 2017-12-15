@@ -23,26 +23,18 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import division
 import os
-import math
 import subprocess
 import copy
 
 from python_qt_binding import loadUi
-from python_qt_binding.QtCore import Qt, QTimer, Signal, Slot, QRectF, QPointF, QSize, QRect, QPoint
-from python_qt_binding.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QListWidgetItem, QDialog, QGraphicsView, QGraphicsScene, QGraphicsEllipseItem, QGraphicsPathItem, QTableWidgetItem, QHeaderView, QStyle, QCommonStyle
-from python_qt_binding.QtGui import QColor, QPen, QBrush, QPainterPath, QPolygonF, QTransform, QPainter, QIcon, QPixmap, QPaintEvent, QPalette
-from python_qt_binding.QtSvg import QSvgGenerator
-import roslib
+from python_qt_binding.QtCore import Qt, Signal, Slot
+from python_qt_binding.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel
 import rospkg
 import rospy
 from rospy.exceptions import ROSException
 
-import xml.dom.minidom as minidom
 import tempfile
-
-from rqt_topic.topic_info import TopicInfo
 
 from subsystem_msgs.srv import *
 import subsystem_common
@@ -225,7 +217,7 @@ class SubsystemWidget(QWidget):
             self.exportBehaviorGraph(graph_name)
 
     def genBehaviorGraph(self, subsystem_info, behavior_name, hide_converters=True):
-        g = dot_graph.Graph()
+        g = dot_graph.Graph(shape="rounded_box")
         behavior = None
         for b in subsystem_info.behaviors:
             if b.name == behavior_name:
@@ -347,6 +339,7 @@ class SubsystemWidget(QWidget):
                 shown_components.add(conn_tuple[1])
             g.edges.append(edge)
 
+        prev_comp = None
         for c in subsystem_info.components:
             if not c.name in shown_components:
                 continue
@@ -354,6 +347,15 @@ class SubsystemWidget(QWidget):
             node.label = c.name
             node.latex_label = c.latex
             g.nodes[c.name] = node
+
+            # add edges for exec sequence
+            # this is not good
+#            if prev_comp != None:
+#                edge = dot_graph.Graph.Edge()
+#                edge.id_from = prev_comp
+#                edge.id_to = c.name
+#                g.edges.append(edge)
+#            prev_comp = c.name
 
         return g
 

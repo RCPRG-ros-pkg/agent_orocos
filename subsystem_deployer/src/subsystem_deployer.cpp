@@ -221,6 +221,10 @@ class SubsystemDeployerRosService : public SubsystemDeployerRosServiceBase {
 
     res.is_initialized = false;
 
+    if (!d_.isInitialized()) {
+        return true;
+    }
+
     for (int i = 0; i < d_.getLowerInputBuffers().size(); ++i) {
       res.lower_inputs.push_back(
           d_.getChannelName(d_.getLowerInputBuffers()[i].interface_alias_));
@@ -1028,8 +1032,26 @@ std::vector<RTT::TaskContext*> SubsystemDeployer::getAllComponents() const {
   std::vector<RTT::TaskContext*> result;
 
   std::vector < std::string > peer_names = dc_->getPeerList();
-  for (int i = 0; i < peer_names.size(); ++i) {
-    result.push_back(dc_->getPeer(peer_names[i]));
+  // TODO: sort it according to execution order
+
+  RTT::OperationCaller<bool(std::vector<std::string> &order)> scheme_getExecutionOrder = scheme_
+      ->getOperation("getExecutionOrder");
+  if (!scheme_getExecutionOrder.ready()) {
+    Logger::log() << Logger::Error
+        << "Could not get getExecutionOrder operation of Conman scheme" << Logger::endl;
+    return result;
+  }
+
+  std::vector<std::string> exec_order;
+  if (!scheme_getExecutionOrder(exec_order)) {
+    Logger::log() << Logger::Error
+        << "Could not get execution order from Conman scheme" << Logger::endl;
+    return result;
+  }
+
+  result.push_back(master_component_);
+  for (int i = 0; i < exec_order.size(); ++i) {
+    result.push_back(dc_->getPeer(exec_order[i]));
   }
 
   return result;
