@@ -127,6 +127,9 @@ bool DiagnosticComponent::configureHook() {
             diag.component_name_ = tc->getName();
             diag.getDiag_ = RTT::OperationCaller<std::string()>(getDiagOp, tc->engine());
             diag_vec_.push_back(diag);
+            Logger::log() << Logger::Info << "Added diagnostics for component "
+                << tc->getName()
+                << Logger::endl;
         }
         else {
             Logger::log() << Logger::Warning << "component "

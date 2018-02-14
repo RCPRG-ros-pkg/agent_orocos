@@ -1049,8 +1049,10 @@ std::vector<RTT::TaskContext*> SubsystemDeployer::getAllComponents() const {
     return result;
   }
 
+//  Logger::log() << Logger::Info << "execution order of Conman scheme:" << Logger::endl;
   result.push_back(master_component_);
   for (int i = 0; i < exec_order.size(); ++i) {
+//    Logger::log() << Logger::Info << "    " << dc_->getPeer(exec_order[i])->getName() << Logger::endl;
     result.push_back(dc_->getPeer(exec_order[i]));
   }
 
@@ -1467,22 +1469,6 @@ bool SubsystemDeployer::configure(int rt_prio) {
     stream_component_->start();
   }
 
-  all_components = getAllComponents();
-  // add all peers to diagnostics component
-  for (int i = 0; i < all_components.size(); ++i) {
-    if (all_components[i]->getName() != diag_component_->getName()) {
-      diag_component_->addPeer(all_components[i]);
-    }
-  }
-
-  Logger::log() << Logger::Info << "configuring component '"
-      << diag_component_->getName() << "'" << Logger::endl;
-  if (!diag_component_->configure()) {
-    RTT::log(RTT::Error) << "Unable to configure component "
-        << diag_component_->getName() << RTT::endlog();
-    return false;
-  }
-
   // initialize conman scheme
   RTT::OperationCaller<bool(const std::string&)> scheme_addBlock = scheme_
       ->getOperation("addBlock");
@@ -1523,6 +1509,22 @@ bool SubsystemDeployer::configure(int rt_prio) {
     if (it != components_ros_action_.end()) {
       conman_peers[i]->engine()->setMaster(0);
     }
+  }
+
+  all_components = getAllComponents();
+  // add all peers to diagnostics component
+  for (int i = 0; i < all_components.size(); ++i) {
+    if (all_components[i]->getName() != diag_component_->getName()) {
+      diag_component_->addPeer(all_components[i]);
+    }
+  }
+
+  Logger::log() << Logger::Info << "configuring component '"
+      << diag_component_->getName() << "'" << Logger::endl;
+  if (!diag_component_->configure()) {
+    RTT::log(RTT::Error) << "Unable to configure component "
+        << diag_component_->getName() << RTT::endlog();
+    return false;
   }
 
   //
