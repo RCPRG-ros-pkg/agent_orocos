@@ -2,7 +2,7 @@
  Copyright (c) 2014, Robot Control and Pattern Recognition Group,
  Warsaw University of Technology
  All rights reserved.
- 
+
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
  * Redistributions of source code must retain the above copyright
@@ -13,7 +13,7 @@
  * Neither the name of the Warsaw University of Technology nor the
  names of its contributors may be used to endorse or promote products
  derived from this software without specific prior written permission.
- 
+
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,7 +28,16 @@
 
 #include "subsystem_deployer/subsystem_deployer.h"
 #include "subsystem_common/abstract_port_converter.h"
+#include <subsystem_msgs/GetSubsystemInfo.h>
 
+#include <iostream>
+#include <string>
+#include <unistd.h>
+#include <stdio.h>
+#include <tinyxml.h>
+
+#include "Eigen/Dense"
+#include "ros/ros.h"
 #include <rtt/rtt-config.h>
 #include <rtt/os/main.h>
 #include <rtt/ConnPolicy.hpp>
@@ -38,19 +47,7 @@
 #include <rtt/extras/SlaveActivity.hpp>
 #include <rtt/base/ExecutableInterface.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
-
-#include <rtt_roscomm/rtt_rostopic.h>
-
-#include "Eigen/Dense"
-
-#include <iostream>
-#include <string>
-#include <unistd.h>
-#include <stdio.h>
-
-#include "ros/ros.h"
-#include <subsystem_msgs/GetSubsystemInfo.h>
-#include <tinyxml.h>
+#include <rtt_roscomm/rostopic.h>
 
 using namespace RTT;
 using namespace std;
