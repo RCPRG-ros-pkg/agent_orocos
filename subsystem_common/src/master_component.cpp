@@ -88,7 +88,7 @@ public:
             return;
         }
         if (new_state_id < 0 || new_state_id >= states_count_) {
-            RTT::log(RTT::Error) << "addStateSwitch: wrong state id: " << new_state_id << ", should be in range [0, " << (states_count_-1) << "]" << RTT::endlog();
+            Logger::log() << Logger::Error << "addStateSwitch: wrong state id: " << new_state_id << ", should be in range [0, " << (states_count_-1) << "]" << Logger::endl;
         }
         int prev_idx = (idx_+h_.size()-1)%h_.size();
         int prev_state_id = h_[prev_idx].id_;
@@ -242,7 +242,7 @@ private:
 
 void MasterComponent::setThreadName(const std::string& thread_name) {
     thread_name_ = thread_name;
-    RTT::log(RTT::Info) << "master component thread name: " << thread_name_ << RTT::endlog();
+    Logger::log() << Logger::Info << "master component thread name: " << thread_name_ << Logger::endl;
 }
 
 MasterComponent::MasterComponent(const std::string &name)
@@ -382,9 +382,9 @@ void MasterComponent::calculateConflictingComponents() {
             }
 
             if (comp_out.size() > 1) {
-                RTT::log(RTT::Info) << "Conflicting components for input port " << scheme_peers_[i]->getName() << "." << comp_ports[j] << ":" << RTT::endlog();
+                Logger::log() << Logger::Info << "Conflicting components for input port " << scheme_peers_[i]->getName() << "." << comp_ports[j] << ":" << Logger::endl;
                 for (int k = 0; k < comp_out.size(); ++k) {
-                    RTT::log(RTT::Info) << "    \'" << comp_out[k] << "\' (port: \'" << port_out[k] << "\')" << RTT::endlog();
+                    Logger::log() << Logger::Info << "    \'" << comp_out[k] << "\' (port: \'" << port_out[k] << "\')" << Logger::endl;
                 }
             }
 
@@ -400,9 +400,9 @@ void MasterComponent::calculateConflictingComponents() {
             }
         }
     }
-    RTT::log(RTT::Info) << "Conflicting components pairs:" << RTT::endlog();
+    Logger::log() << Logger::Info << "Conflicting components pairs:" << Logger::endl;
     for (std::set<std::pair<std::string, std::string > >::const_iterator it = conflicting_components_.begin(); it != conflicting_components_.end(); ++it) {
-        RTT::log(RTT::Info) << "    " << it->first << ", " << it->second << RTT::endlog();
+        Logger::log() << Logger::Info << "    " << it->first << ", " << it->second << Logger::endl;
     }
 }
 
@@ -411,7 +411,7 @@ bool MasterComponent::configureHook() {
 
     master_service_ = this->getProvider<subsystem_common::MasterServiceRequester >("master");
     if (!master_service_) {
-        RTT::log(RTT::Error) << "Unable to load subsystem_common::MasterService" << RTT::endlog();
+        Logger::log() << Logger::Error << "Unable to load subsystem_common::MasterService" << Logger::endl;
         return false;
     }
 
@@ -555,7 +555,7 @@ bool MasterComponent::configureHook() {
 
     in_data_ = master_service_->allocateBuffersData();
     if (!in_data_) {
-        RTT::log(RTT::Error) << "Unable to get InputData sample" << RTT::endlog();
+        Logger::log() << Logger::Error << "Unable to get InputData sample" << Logger::endl;
         return false;
     }
 
@@ -719,7 +719,7 @@ void MasterComponent::updateHook() {
     ros::Time time4 = rtt_rosclock::rtt_wall_now();
 
     if (scheme_->getTaskState() != RTT::TaskContext::Running) {
-        RTT::log(RTT::Error) << "Component is not in the running state: " << scheme_->getName() << RTT::endlog();
+        Logger::log() << Logger::Error << "Component is not in the running state: " << scheme_->getName() << Logger::endl;
         error();
         return;
     }

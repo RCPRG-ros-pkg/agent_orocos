@@ -38,6 +38,8 @@
 
 #include <common_interfaces/interface_ports_fwd.h>
 
+using namespace RTT;
+
 namespace interface_ports {
 
 template <typename T >
@@ -147,7 +149,7 @@ class InputPortInterfaceRegistrar {
 public:
     InputPortInterfaceRegistrar(const std::string& name)
     {
-        std::cout << "registering InputPortInterface: " << name << std::endl;  // debug
+        Logger::log() << Logger::Debug << "registering InputPortInterface: " << name << Logger::endl;
         // register the class factory function 
         InputPortInterfaceFactory<typename T::Container_ >::Instance()->RegisterFactoryFunction(name, InputPortInterfaceFactoryFunction<T >);
     }
@@ -201,7 +203,7 @@ class OutputPortInterfaceRegistrar {
 public:
     OutputPortInterfaceRegistrar(const std::string& name)
     {
-        std::cout << "registering OutputPortInterface: " << name << std::endl;  // debug
+        Logger::log() << Logger::Debug << "registering OutputPortInterface: " << name << Logger::endl;
         // register the class factory function 
         OutputPortInterfaceFactory<typename T::Container_ >::Instance()->RegisterFactoryFunction(name, OutputPortInterfaceFactoryFunction<T >);
     }

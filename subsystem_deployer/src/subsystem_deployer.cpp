@@ -92,7 +92,7 @@ class SubsystemDeployerRosService : public SubsystemDeployerRosServiceBase {
     comp_ports = sv->getPortNames();
     // Loop over all ports
     for (unsigned int j = 0; j < comp_ports.size(); j++) {
-      log(Debug) << "Port: " << comp_ports[j] << endlog();
+      Logger::log() << Logger::Debug << "Port: " << comp_ports[j] << Logger::endl;
       std::list < internal::ConnectionManager::ChannelDescriptor > chns = sv
           ->getPort(comp_ports[j])->getManager()->getConnections();
       std::list<internal::ConnectionManager::ChannelDescriptor>::iterator k;
@@ -117,7 +117,7 @@ class SubsystemDeployerRosService : public SubsystemDeployerRosServiceBase {
       for (k = chns.begin(); k != chns.end(); k++) {
         base::ChannelElementBase::shared_ptr bs = k->get<1>();
         ConnPolicy cp = k->get<2>();
-        log(Debug) << "Connection id: " << cp.name_id << endlog();
+        Logger::log() << Logger::Debug << "Connection id: " << cp.name_id << Logger::endl;
         std::string comp_in, port_in;
         if (bs->getInputEndPoint()->getPort() != 0) {
           if (bs->getInputEndPoint()->getPort()->getInterface() != 0) {
@@ -128,8 +128,8 @@ class SubsystemDeployerRosService : public SubsystemDeployerRosServiceBase {
           }
           port_in = bs->getInputEndPoint()->getPort()->getName();
         }
-        log(Debug) << "Connection starts at port: " << port_in << endlog();
-        log(Debug) << "Connection starts at component: " << comp_in << endlog();
+        Logger::log() << Logger::Debug << "Connection starts at port: " << port_in << Logger::endl;
+        Logger::log() << Logger::Debug << "Connection starts at component: " << comp_in << Logger::endl;
         std::string comp_out, port_out;
         if (bs->getOutputEndPoint()->getPort() != 0) {
           if (bs->getOutputEndPoint()->getPort()->getInterface() != 0) {
@@ -150,8 +150,8 @@ class SubsystemDeployerRosService : public SubsystemDeployerRosServiceBase {
         addConnection(ci);
 
         /*
-         log(Debug) << "Connection ends at port: " << port_out << endlog();
-         log(Debug) << "Connection ends at component: " << comp_out << endlog();
+         Logger::log() << Logger::Debug << "Connection ends at port: " << port_out << Logger::endl;
+         Logger::log() << Logger::Debug << "Connection ends at component: " << comp_out << Logger::endl;
          std::stringstream ss;
          // Only consider input ports
          if(dynamic_cast<base::InputPortInterface*>(sv->getPort(comp_ports[j])) != 0){
@@ -514,8 +514,8 @@ static bool setComponentProperty(RTT::TaskContext *tc,
   RTT::Property<T>* property = dynamic_cast<RTT::Property<T>*>(tc->properties()
       ->getProperty(prop_name));
   if (!property) {
-    RTT::log(RTT::Error) << "component " << tc->getName()
-        << " does not have property " << prop_name << RTT::endlog();
+    Logger::log() << Logger::Error << "component " << tc->getName()
+        << " does not have property " << prop_name << Logger::endl;
     return false;
   }
   property->set(value);
@@ -524,18 +524,44 @@ static bool setComponentProperty(RTT::TaskContext *tc,
 }
 
 bool SubsystemDeployer::setChannelsNames() {
-  for (std::map<std::string, std::string>::const_iterator it =
+/*  for (std::map<std::string, std::string>::const_iterator it =
       io_buffers_.begin(); it != io_buffers_.end(); ++it) {
     if (!setComponentProperty<std::string>(master_component_,
                                            "channel_name_" + it->first,
                                            it->second)) {
-      RTT::log(RTT::Error) << "Could not set component \'"
+      Logger::log() << Logger::Error << "Could not set component \'"
           << master_component_->getName() << "\'property \'channel_name_"
-          << it->first << "\'" << RTT::endlog();
+          << it->first << "\'" << Logger::endl;
 //TODO: set names for input buffers only
       //return false;
     }
   }
+*/
+  for (int i = 0; i < lowerInputBuffers_.size(); ++i) {
+    const std::string& alias = lowerInputBuffers_[i].interface_alias_;
+    const std::string& ch_name = getChannelName(alias);
+    if (!setComponentProperty<std::string>(master_component_,
+                                           std::string("channel_name_") + alias,
+                                           ch_name)) {
+      Logger::log() << Logger::Error << "Could not set channel name for i/o buffer \'"
+          << alias << "\', \'" << ch_name << "\'" << Logger::endl;
+      return false;
+    }
+  }
+  for (int i = 0; i < upperInputBuffers_.size(); ++i) {
+    const std::string& alias = upperInputBuffers_[i].interface_alias_;
+    const std::string& ch_name = getChannelName(alias);
+    if (!setComponentProperty<std::string>(master_component_,
+                                           std::string("channel_name_") + alias,
+                                           ch_name)) {
+      Logger::log() << Logger::Error << "Could not set channel name for i/o buffer \'"
+          << alias << "\', \'" << ch_name << "\'" << Logger::endl;
+      return false;
+    }
+  }
+
+
+
 
   RTT::TaskContext* comp_y = dc_->getPeer("Y");
   for (int i = 0; i < lowerOutputBuffers_.size(); ++i) {
@@ -544,8 +570,8 @@ bool SubsystemDeployer::setChannelsNames() {
     if (!setComponentProperty<std::string>(comp_y,
                                            std::string("channel_name_") + alias,
                                            ch_name)) {
-      RTT::log(RTT::Error) << "Could not set channel name for i/o buffer \'"
-          << alias << "\', \'" << ch_name << "\'" << RTT::endlog();
+      Logger::log() << Logger::Error << "Could not set channel name for i/o buffer \'"
+          << alias << "\', \'" << ch_name << "\'" << Logger::endl;
       return false;
     }
   }
@@ -555,8 +581,8 @@ bool SubsystemDeployer::setChannelsNames() {
     if (!setComponentProperty<std::string>(comp_y,
                                            std::string("channel_name_") + alias,
                                            ch_name)) {
-      RTT::log(RTT::Error) << "Could not set channel name for i/o buffer \'"
-          << alias << "\', \'" << ch_name << "\'" << RTT::endlog();
+      Logger::log() << Logger::Error << "Could not set channel name for i/o buffer \'"
+          << alias << "\', \'" << ch_name << "\'" << Logger::endl;
       return false;
     }
   }
@@ -572,8 +598,8 @@ bool SubsystemDeployer::deployBufferSplitComponent(
   std::string name = buf_info.interface_alias_ + suffix;
 
   if (!dc_->loadComponent(name, type)) {
-    RTT::log(RTT::Error) << "Unable to load component " << type
-        << RTT::endlog();
+    Logger::log() << Logger::Error << "Unable to load component " << type
+        << Logger::endl;
     return false;
   }
   RTT::TaskContext* comp = dc_->getPeer(name);
@@ -594,8 +620,8 @@ bool SubsystemDeployer::deployBufferConcateComponent(
   std::string name = buf_info.interface_alias_ + suffix;
 
   if (!dc_->loadComponent(name, type)) {
-    RTT::log(RTT::Error) << "Unable to load component " << type
-        << RTT::endlog();
+    Logger::log() << Logger::Error << "Unable to load component " << type
+        << Logger::endl;
     return false;
   }
   RTT::TaskContext* comp = dc_->getPeer(name);
@@ -620,20 +646,16 @@ bool SubsystemDeployer::isConverter(const std::string& name) const {
 bool SubsystemDeployer::connectPorts(const std::string& from,
                                      const std::string& to,
                                      const ConnPolicy& cp) {
-  static int counter = 0;
+    static int counter = 0;
 
-  if (dc_->connect(from, to, cp)) {
-    return true;
-  } else {
-    RTT::log(RTT::Info) << "Could not create direct connection: between '" << from << "' and '" << to << "', trying to create data converter..." << RTT::endlog();
     RTT::base::PortInterface *pa = strToPort(from);
     RTT::base::PortInterface *pb = strToPort(to);
     if (!pa) {
-      RTT::log(RTT::Error) << "no such port: '" << from << "'" << RTT::endlog();
+      Logger::log() << Logger::Error << "no such port: '" << from << "'" << Logger::endl;
       return false;
     }
     if (!pb) {
-      RTT::log(RTT::Error) << "no such port: '" << to << "'" << RTT::endlog();
+      Logger::log() << Logger::Error << "no such port: '" << to << "'" << Logger::endl;
       return false;
     }
 
@@ -641,46 +663,52 @@ bool SubsystemDeployer::connectPorts(const std::string& from,
         ->getPortConverter(pa, pb);
 
     if (conv_type.empty()) {
-      RTT::log(RTT::Error) << "could not find converted for ports: '" << from
-          << "' and '" << to << "'" << RTT::endlog();
-      return false;
-    }
-    std::ostringstream strs;
-    strs << counter;
-    counter++;
+        if (dc_->connect(from, to, cp)) {
+            return true;
+        } else {
+            Logger::log() << Logger::Error << "could not find converted for ports: '" << from
+                << "' and '" << to << "'" << Logger::endl;
+            return false;
+        }
+    } else {
+        //Logger::log() << Logger::Info << "Could not create direct connection: between '" << from << "' and '" << to << "', trying to create data converter..." << Logger::endl;
 
-    std::string comp_name = std::string("conv") + strs.str();
-    if (!dc_->loadComponent(comp_name, conv_type)) {
-      RTT::log(RTT::Error) << "Unable to load component " << conv_type
-          << RTT::endlog();
-      return false;
-    }
+        std::ostringstream strs;
+        strs << counter;
+        counter++;
 
-    if (!dc_->connect(from, comp_name + ".data_INPORT", cp)) {
-      RTT::log(RTT::Error) << "Unable to connect: " << from << " and "
-          << comp_name << ".data_INPORT" << RTT::endlog();
-      return false;
-    }
-    if (!dc_->connect(comp_name + ".data_OUTPORT", to, cp)) {
-      RTT::log(RTT::Error) << "Unable to connect: " << comp_name
-          << ".data_OUTPORT" << " and " << to << RTT::endlog();
-      return false;
-    }
+        std::string comp_name = std::string("conv") + strs.str();
+        if (!dc_->loadComponent(comp_name, conv_type)) {
+          Logger::log() << Logger::Error << "Unable to load component " << conv_type
+              << Logger::endl;
+          return false;
+        }
 
-    // set name of both new connections the same as the old one
-    connections_.push_back(
-        Connection(from, comp_name + ".data_INPORT",
-                   getConnectionName(from, to),
-                   getConnectionNameLatex(from, to), cp));
-    connections_.push_back(
-        Connection(comp_name + ".data_OUTPORT", to, getConnectionName(from, to),
-                   getConnectionNameLatex(from, to), cp));
+        if (!dc_->connect(from, comp_name + ".data_INPORT", cp)) {
+          Logger::log() << Logger::Error << "Unable to connect: " << from << " and "
+              << comp_name << ".data_INPORT" << Logger::endl;
+          return false;
+        }
+        if (!dc_->connect(comp_name + ".data_OUTPORT", to, cp)) {
+          Logger::log() << Logger::Error << "Unable to connect: " << comp_name
+              << ".data_OUTPORT" << " and " << to << Logger::endl;
+          return false;
+        }
 
-    converter_components_.push_back(dc_->getPeer(comp_name));
-    RTT::log(RTT::Info) << "Created data converter between '" << from << "' and '" << to << "', so the above error is harmless." << RTT::endlog();
-    return true;
-  }
-  return false;
+        // set name of both new connections the same as the old one
+        connections_.push_back(
+            Connection(from, comp_name + ".data_INPORT",
+                       getConnectionName(from, to),
+                       getConnectionNameLatex(from, to), cp));
+        connections_.push_back(
+            Connection(comp_name + ".data_OUTPORT", to, getConnectionName(from, to),
+                       getConnectionNameLatex(from, to), cp));
+
+        converter_components_.push_back(dc_->getPeer(comp_name));
+        Logger::log() << Logger::Info << "Created data converter between '" << from << "' and '" << to << "', so the above error is harmless." << Logger::endl;
+        return true;
+    }
+    return false;
 }
 
 bool SubsystemDeployer::createInputBuffers(
@@ -698,8 +726,8 @@ bool SubsystemDeployer::createInputBuffers(
     if (!connectPorts(master_component_name_ + "." + alias + "_OUTPORT",
                       alias + "Split.msg_INPORT",
                       ConnPolicy(ConnPolicy::DATA, ConnPolicy::UNSYNC))) {
-      RTT::log(RTT::Error) << "could not connect ports Split-Rx: " << alias
-          << RTT::endlog();
+      Logger::log() << Logger::Error << "could not connect ports Split-Rx: " << alias
+          << Logger::endl;
       return false;
     }
 
@@ -714,8 +742,8 @@ bool SubsystemDeployer::createOutputBuffers(
   if (!comp) {
     std::string type = getSubsystemName() + "_types::OutputBuffers";
     if (!dc_->loadComponent("Y", type)) {
-      RTT::log(RTT::Error) << "Unable to load component " << type
-          << RTT::endlog();
+      Logger::log() << Logger::Error << "Unable to load component " << type
+          << Logger::endl;
       return false;
     }
     comp = dc_->getPeer("Y");
@@ -736,8 +764,8 @@ bool SubsystemDeployer::createOutputBuffers(
     if (!connectPorts(alias + "Concate.msg_OUTPORT",
                       std::string("Y.") + alias + "_INPORT",
                       ConnPolicy(ConnPolicy::DATA, ConnPolicy::UNSYNC))) {
-      RTT::log(RTT::Error) << "could not connect ports Concate-Y: " << alias
-          << RTT::endlog();
+      Logger::log() << Logger::Error << "could not connect ports Concate-Y: " << alias
+          << Logger::endl;
       return false;
     }
   }
@@ -748,16 +776,16 @@ bool SubsystemDeployer::setTriggerOnStart(RTT::TaskContext* tc, bool trigger) {
   RTT::base::AttributeBase* base = tc->attributes()->getAttribute(
       "TriggerOnStart");
   if (!base) {
-    RTT::log(RTT::Error) << "component " << tc->getName()
-        << " does not have attribute " << "TriggerOnStart" << RTT::endlog();
+    Logger::log() << Logger::Error << "component " << tc->getName()
+        << " does not have attribute " << "TriggerOnStart" << Logger::endl;
     return false;
   }
   RTT::Attribute<bool>* triggerOnStart =
       static_cast<RTT::Attribute<bool>*>(base);
   if (!triggerOnStart) {
-    RTT::log(RTT::Error) << "component " << tc->getName()
+    Logger::log() << Logger::Error << "component " << tc->getName()
         << " does not have attribute " << "TriggerOnStart" << " of type bool"
-        << RTT::endlog();
+        << Logger::endl;
     return false;
   }
   triggerOnStart->set(trigger);
@@ -928,9 +956,9 @@ bool SubsystemDeployer::initializeSubsystem(
   master_service_ = master_component_->getProvider
       < subsystem_common::MasterServiceRequester > ("master");
   if (!master_service_) {
-    RTT::log(RTT::Error)
+    Logger::log() << Logger::Error
         << "Unable to load subsystem_common::MasterService from master_component"
-        << RTT::endlog();
+        << Logger::endl;
     return false;
   }
 
@@ -949,14 +977,14 @@ bool SubsystemDeployer::initializeSubsystem(
   }
 
   if (!createInputBuffers(lowerInputBuffers_)) {
-    RTT::log(RTT::Error) << "Could not create lower input buffers"
-        << RTT::endlog();
+    Logger::log() << Logger::Error << "Could not create lower input buffers"
+        << Logger::endl;
     return false;
   }
 
   if (!createInputBuffers(upperInputBuffers_)) {
-    RTT::log(RTT::Error) << "Could not create upper input buffers"
-        << RTT::endlog();
+    Logger::log() << Logger::Error << "Could not create upper input buffers"
+        << Logger::endl;
     return false;
   }
 
@@ -975,14 +1003,14 @@ bool SubsystemDeployer::initializeSubsystem(
   }
 
   if (!createOutputBuffers(lowerOutputBuffers_)) {
-    RTT::log(RTT::Error) << "Could not create lower output buffers"
-        << RTT::endlog();
+    Logger::log() << Logger::Error << "Could not create lower output buffers"
+        << Logger::endl;
     return false;
   }
 
   if (!createOutputBuffers(upperOutputBuffers_)) {
-    RTT::log(RTT::Error) << "Could not create upper output buffers"
-        << RTT::endlog();
+    Logger::log() << Logger::Error << "Could not create upper output buffers"
+        << Logger::endl;
     return false;
   }
 
@@ -992,8 +1020,8 @@ bool SubsystemDeployer::initializeSubsystem(
   dc_->loadComponent("diag", "DiagnosticComponent");
   diag_component_ = dc_->getPeer("diag");
   if (!diag_component_->setPeriod(0.5)) {
-    RTT::log(RTT::Error) << "could not change period of component \'"
-        << diag_component_->getName() << RTT::endlog();
+    Logger::log() << Logger::Error << "could not change period of component \'"
+        << diag_component_->getName() << Logger::endl;
     return false;
   }
 
@@ -1002,24 +1030,24 @@ bool SubsystemDeployer::initializeSubsystem(
   if (diag_port_out_) {
     if (!diag_port_out_->createStream(
         rtt_roscomm::topic(std::string("/") + getSubsystemName() + "/diag"))) {
-      RTT::log(RTT::Error) << "could not create ROS stream for port \'"
+      Logger::log() << Logger::Error << "could not create ROS stream for port \'"
           << diag_component_->getName() << "." << diag_port_out_->getName()
-          << "\'" << RTT::endlog();
+          << "\'" << Logger::endl;
       return false;
     }
   } else {
-    RTT::log(RTT::Error) << "component \'" << diag_component_->getName()
-        << "\' does not have port \'diag_OUTPORT\'" << RTT::endlog();
+    Logger::log() << Logger::Error << "component \'" << diag_component_->getName()
+        << "\' does not have port \'diag_OUTPORT\'" << Logger::endl;
     return false;
   }
 
   Logger::log() << Logger::Info << "OK" << Logger::endl;
 
-  RTT::log(RTT::Info) << "Master Component ports:" << RTT::endlog();
+  Logger::log() << Logger::Info << "Master Component ports:" << Logger::endl;
   std::vector < std::string > port_names = master_component_->ports()
       ->getPortNames();
   for (int i = 0; i < port_names.size(); ++i) {
-    RTT::log(RTT::Info) << "  " << port_names[i] << RTT::endlog();
+    Logger::log() << Logger::Info << "  " << port_names[i] << Logger::endl;
   }
 
   return true;
@@ -1134,8 +1162,8 @@ bool SubsystemDeployer::connectionExists(const std::string& from,
      }
      port_in = bs->getInputEndPoint()->getPort()->getName();
      }
-     log(Debug) << "Connection starts at port: " << port_in << endlog();
-     log(Debug) << "Connection starts at component: " << comp_in << endlog();
+     Logger::log() << Logger::Debug << "Connection starts at port: " << port_in << Logger::endl;
+     Logger::log() << Logger::Debug << "Connection starts at component: " << comp_in << Logger::endl;
      std::string comp_out, port_out;
      */
     if (bs->getOutputEndPoint()->getPort() != 0) {
@@ -1239,8 +1267,8 @@ bool SubsystemDeployer::configure(int rt_prio) {
       Logger::log() << Logger::Info << "configuring component '"
           << core_components[i]->getName() << "'" << Logger::endl;
       if (!core_components[i]->configure()) {
-        RTT::log(RTT::Error) << "Unable to configure component "
-            << core_components[i]->getName() << RTT::endlog();
+        Logger::log() << Logger::Error << "Unable to configure component "
+            << core_components[i]->getName() << Logger::endl;
         return false;
       }
     }
@@ -1251,8 +1279,8 @@ bool SubsystemDeployer::configure(int rt_prio) {
   for (std::list<Connection>::iterator it = connections_to_join.begin();
       it != connections_to_join.end(); it++) {
     if (isSubsystemOutput(it->to)) {
-      RTT::log(RTT::Info) << "Subsystem output: " << it->from << "->" << it->to
-          << RTT::endlog();
+      Logger::log() << Logger::Info << "Subsystem output: " << it->from << "->" << it->to
+          << Logger::endl;
     }
   }
 
@@ -1264,16 +1292,16 @@ bool SubsystemDeployer::configure(int rt_prio) {
       continue;
     }
     if (isSubsystemBuffer(it->from)) {
-      RTT::log(RTT::Error) << "Could not connect ports \'" << it->from
+      Logger::log() << Logger::Error << "Could not connect ports \'" << it->from
           << "\' and \'" << it->to << "\'. Port \'" << it->from
-          << "\' is subsystem i/o buffer." << RTT::endlog();
+          << "\' is subsystem i/o buffer." << Logger::endl;
       return false;
     }
 
     if (isSubsystemBuffer(it->to)) {
-      RTT::log(RTT::Error) << "Could not connect ports \'" << it->from
+      Logger::log() << Logger::Error << "Could not connect ports \'" << it->from
           << "\' and \'" << it->to << "\'. Port \'" << it->to
-          << "\' is subsystem i/o buffer." << RTT::endlog();
+          << "\' is subsystem i/o buffer." << Logger::endl;
       return false;
     }
 
@@ -1297,9 +1325,9 @@ bool SubsystemDeployer::configure(int rt_prio) {
     if (it != component_services_.end()) {
       for (int j = 0; j < it->second.size(); ++j) {
         if (!tc->loadService(it->second[j])) {
-          RTT::log(RTT::Error) << "Could not load service \'" << it->second[j]
+          Logger::log() << Logger::Error << "Could not load service \'" << it->second[j]
               << "\' for component \'" << tc->getName() << "\'"
-              << RTT::endlog();
+              << Logger::endl;
           return false;
         }
       }
@@ -1316,18 +1344,18 @@ bool SubsystemDeployer::configure(int rt_prio) {
     }
     loadROSParam(non_core_components[i]);
     if (!non_core_components[i]->isConfigured()) {
-      RTT::log(RTT::Info) << "loading ROS parameters for \'"
-          << non_core_components[i]->getName() << "\'" << RTT::endlog();
+      Logger::log() << Logger::Info << "loading ROS parameters for \'"
+          << non_core_components[i]->getName() << "\'" << Logger::endl;
       Logger::log() << Logger::Info << "configuring component '"
           << non_core_components[i]->getName() << "'" << Logger::endl;
       if (!non_core_components[i]->configure()) {
-        RTT::log(RTT::Error) << "Unable to configure component "
-            << non_core_components[i]->getName() << RTT::endlog();
+        Logger::log() << Logger::Error << "Unable to configure component "
+            << non_core_components[i]->getName() << Logger::endl;
         return false;
       }
     } else {
-      RTT::log(RTT::Info) << "component \'" << non_core_components[i]->getName()
-          << "\' is already configured" << RTT::endlog();
+      Logger::log() << Logger::Info << "component \'" << non_core_components[i]->getName()
+          << "\' is already configured" << Logger::endl;
     }
   }
 
@@ -1338,20 +1366,20 @@ bool SubsystemDeployer::configure(int rt_prio) {
       continue;
     }
     if (!isInputPort(it->to)) {
-      RTT::log(RTT::Error) << "port \'" << it->to << "\' is not an input port"
-          << RTT::endlog();
+      Logger::log() << Logger::Error << "port \'" << it->to << "\' is not an input port"
+          << Logger::endl;
       return false;
     }
 
     if (!isOutputPort(it->from)) {
-      RTT::log(RTT::Error) << "port \'" << it->from
-          << "\' is not an output port" << RTT::endlog();
+      Logger::log() << Logger::Error << "port \'" << it->from
+          << "\' is not an output port" << Logger::endl;
       return false;
     }
 
     if (!connectPorts(it->from, it->to, it->cp)) {
-      RTT::log(RTT::Error) << "Unable to connect \'" << it->from << "\' and \'"
-          << it->to << "\'" << RTT::endlog();
+      Logger::log() << Logger::Error << "Unable to connect \'" << it->from << "\' and \'"
+          << it->to << "\'" << Logger::endl;
       return false;
     }
   }
@@ -1369,15 +1397,15 @@ bool SubsystemDeployer::configure(int rt_prio) {
       ros_streams_.begin(); it != ros_streams_.end(); ++it) {
     RTT::base::PortInterface *pi = strToPort(it->first);
     if (NULL == pi) {
-      RTT::log(RTT::Error) << "Streamed port \'" << it->first
-          << "\' does not exist." << RTT::endlog();
+      Logger::log() << Logger::Error << "Streamed port \'" << it->first
+          << "\' does not exist." << Logger::endl;
       return false;
     }
 
     if (NULL == dynamic_cast<RTT::base::OutputPortInterface*>(pi)) {
-      RTT::log(RTT::Error) << "Streamed port \'" << it->first
+      Logger::log() << Logger::Error << "Streamed port \'" << it->first
           << "\' is not an output port. Input ports streaming is not supported."
-          << RTT::endlog();
+          << Logger::endl;
       return false;
     }
 
@@ -1385,19 +1413,19 @@ bool SubsystemDeployer::configure(int rt_prio) {
       const std::string comp_name = "streaming_component";
       const std::string comp_type = "controller_common::BypassComponent";
       if (!dc_->loadComponent(comp_name, comp_type)) {
-        RTT::log(RTT::Error) << "Unable to load component '" << comp_name
-            << "' of type '" << comp_type << "'" << RTT::endlog();
+        Logger::log() << Logger::Error << "Unable to load component '" << comp_name
+            << "' of type '" << comp_type << "'" << Logger::endl;
         return false;
       }
 
       stream_component_ = dc_->getPeer(comp_name);
       if (NULL == stream_component_) {
-        RTT::log(RTT::Error) << "Unable to get component '" << comp_name
-            << "' of type '" << comp_type << "'" << RTT::endlog();
+        Logger::log() << Logger::Error << "Unable to get component '" << comp_name
+            << "' of type '" << comp_type << "'" << Logger::endl;
         return false;
       }
-      RTT::log(RTT::Info) << "Created streaming component '" << comp_name
-          << "' of type '" << comp_type << "'" << RTT::endlog();
+      Logger::log() << Logger::Info << "Created streaming component '" << comp_name
+          << "' of type '" << comp_type << "'" << Logger::endl;
       stream_addInputPort = stream_component_->getOperation("addInputPort");
       if (!stream_addInputPort.ready()) {
         Logger::log() << Logger::Error
@@ -1417,8 +1445,8 @@ bool SubsystemDeployer::configure(int rt_prio) {
 
     p_port->setName(ss.str());
     if (!stream_addInputPort(p_port)) {
-      RTT::log(RTT::Error) << "Could not add port '" << p_port->getName()
-          << "' to streaming component" << RTT::endlog();
+      Logger::log() << Logger::Error << "Could not add port '" << p_port->getName()
+          << "' to streaming component" << Logger::endl;
       return false;
     }
 
@@ -1435,17 +1463,17 @@ bool SubsystemDeployer::configure(int rt_prio) {
 
   if (stream_component_) {
     if (!stream_component_->setPeriod(0.01)) {
-      RTT::log(RTT::Error) << "could not change period of component \'"
-          << diag_component_->getName() << RTT::endlog();
+      Logger::log() << Logger::Error << "could not change period of component \'"
+          << diag_component_->getName() << Logger::endl;
       return false;
     }
     stream_component_->configure();
     for (int i = 0; i < stream_connections.size(); ++i) {
       if (!connectPorts(stream_connections[i].first,
                         stream_connections[i].second, ConnPolicy())) {
-        RTT::log(RTT::Error) << "could not connect ports for streaming \'"
+        Logger::log() << Logger::Error << "could not connect ports for streaming \'"
             << stream_connections[i].first << "', '"
-            << stream_connections[i].second << "'" << RTT::endlog();
+            << stream_connections[i].second << "'" << Logger::endl;
         return false;
       }
     }
@@ -1453,12 +1481,12 @@ bool SubsystemDeployer::configure(int rt_prio) {
     for (int i = 0; i < streams.size(); ++i) {
       if (!dc_->stream(streams[i].first,
                        rtt_roscomm::topic(streams[i].second))) {
-        RTT::log(RTT::Error) << "Unable to connect \'" << streams[i].first
-            << "\' and \'" << streams[i].second << "\'" << RTT::endlog();
+        Logger::log() << Logger::Error << "Unable to connect \'" << streams[i].first
+            << "\' and \'" << streams[i].second << "\'" << Logger::endl;
         return false;
       } else {
-        RTT::log(RTT::Info) << "created ROS stream: \'" << streams[i].first
-            << "\' -> \'" << streams[i].second << "\'" << RTT::endlog();
+        Logger::log() << Logger::Info << "created ROS stream: \'" << streams[i].first
+            << "\' -> \'" << streams[i].second << "\'" << Logger::endl;
       }
     }
 
@@ -1519,8 +1547,8 @@ bool SubsystemDeployer::configure(int rt_prio) {
   Logger::log() << Logger::Info << "configuring component '"
       << diag_component_->getName() << "'" << Logger::endl;
   if (!diag_component_->configure()) {
-    RTT::log(RTT::Error) << "Unable to configure component "
-        << diag_component_->getName() << RTT::endlog();
+    Logger::log() << Logger::Error << "Unable to configure component "
+        << diag_component_->getName() << Logger::endl;
     return false;
   }
 
@@ -1539,9 +1567,9 @@ bool SubsystemDeployer::configure(int rt_prio) {
   for (int i = 0; i < latched_connections_.size(); ++i) {
     if (!scheme_latchConnections(latched_connections_[i].first,
                                  latched_connections_[i].second, true)) {
-      RTT::log(RTT::Error) << "Could not latch connections from \'"
+      Logger::log() << Logger::Error << "Could not latch connections from \'"
           << latched_connections_[i].first << "\' and \'"
-          << latched_connections_[i].second << "\'" << RTT::endlog();
+          << latched_connections_[i].second << "\'" << Logger::endl;
       return false;
     }
   }
@@ -1556,35 +1584,35 @@ bool SubsystemDeployer::configure(int rt_prio) {
         components_ros_action_.find(conman_peers[i]->getName());
     if (it != components_ros_action_.end()) {
       if (!conman_peers[i]->loadService("actionlib")) {
-        RTT::log(RTT::Error)
+        Logger::log() << Logger::Error
             << "Could not load service \'actionlib\' for component \'"
             << it->first << "\', action \'" << it->second << "\'"
-            << RTT::endlog();
+            << Logger::endl;
         return false;
       }
 
       RTT::Service::shared_ptr actionlib_service = conman_peers[i]->provides(
           "actionlib");
       if (!actionlib_service) {
-        RTT::log(RTT::Error)
+        Logger::log() << Logger::Error
             << "Could not get service \'actionlib\' of component \'"
             << it->first << "\', action \'" << it->second << "\'"
-            << RTT::endlog();
+            << Logger::endl;
         return false;
       }
       RTT::OperationCaller<bool(const std::string&)> connect_action =
           actionlib_service->getOperation("connect");
       if (!connect_action.ready()) {
-        RTT::log(RTT::Error)
+        Logger::log() << Logger::Error
             << "Could not get operation \'connect\' of action_service of component \'"
             << it->first << "\', action \'" << it->second << "\'"
-            << RTT::endlog();
+            << Logger::endl;
         return false;
       }
 
       if (!connect_action(it->second)) {
-        RTT::log(RTT::Error) << "Could not connect action \'" << it->second
-            << "\' to action server" << RTT::endlog();
+        Logger::log() << Logger::Error << "Could not connect action \'" << it->second
+            << "\' to action server" << Logger::endl;
         return false;
       }
     }
@@ -1607,11 +1635,11 @@ bool SubsystemDeployer::configure(int rt_prio) {
         size_t before = tc->ports()->getPorts().size();
         removeUnconnectedPorts();
         size_t after = tc->ports()->getPorts().size();
-        RTT::log(RTT::Info) << "Removed unconnected ports of " << tc->getName()
-            << ": reduced from " << before << " to " << after << RTT::endlog();
+        Logger::log() << Logger::Info << "Removed unconnected ports of " << tc->getName()
+            << ": reduced from " << before << " to " << after << Logger::endl;
       } else {
-        RTT::log(RTT::Warning) << "Could not removeUnconnectedPorts() of "
-            << tc->getName() << RTT::endlog();
+        Logger::log() << Logger::Warning << "Could not removeUnconnectedPorts() of "
+            << tc->getName() << Logger::endl;
       }
     }
   }
@@ -1647,14 +1675,14 @@ bool SubsystemDeployer::configure(int rt_prio) {
 
   // start conman scheme first
   if (!scheme_->start()) {
-    RTT::log(RTT::Error) << "Unable to start component: " << scheme_->getName()
-        << RTT::endlog();
+    Logger::log() << Logger::Error << "Unable to start component: " << scheme_->getName()
+        << Logger::endl;
     return false;
   }
 
   if (scheme_->getTaskState() != RTT::TaskContext::Running) {
-    RTT::log(RTT::Error) << "Component is not in the running state: "
-        << scheme_->getName() << RTT::endlog();
+    Logger::log() << Logger::Error << "Component is not in the running state: "
+        << scheme_->getName() << Logger::endl;
     return false;
   }
 
@@ -1662,8 +1690,8 @@ bool SubsystemDeployer::configure(int rt_prio) {
   for (int i = 0; i < core_components.size(); ++i) {
     if (!core_components[i]->isRunning()) {
       if (!core_components[i]->start()) {
-        RTT::log(RTT::Error) << "Unable to start component "
-            << core_components[i]->getName() << RTT::endlog();
+        Logger::log() << Logger::Error << "Unable to start component "
+            << core_components[i]->getName() << Logger::endl;
         return false;
       }
     }
@@ -1683,8 +1711,8 @@ bool SubsystemDeployer::configure(int rt_prio) {
   }
 
   if (!master_component_->trigger()) {
-    RTT::log(RTT::Error) << "Unable to trigger component "
-        << master_component_->getName() << RTT::endlog();
+    Logger::log() << Logger::Error << "Unable to trigger component "
+        << master_component_->getName() << Logger::endl;
     return false;
   }
 
@@ -1762,21 +1790,21 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
       const char *ros_action_attr = component_elem->Attribute("ros_action");
 
       if (!name_attr) {
-        RTT::log(RTT::Error) << "Attribute \'name\' of <component> is not set"
-            << RTT::endlog();
+        Logger::log() << Logger::Error << "Attribute \'name\' of <component> is not set"
+            << Logger::endl;
         return false;
       }
       // the component can be added earlier, by e.g. gazebo
       if (!dc_->hasPeer(name_attr)) {
         if (!type_attr) {
-          RTT::log(RTT::Error) << "Attribute \'type\' of <component> \'"
-              << std::string(name_attr) << "\' is not set" << RTT::endlog();
+          Logger::log() << Logger::Error << "Attribute \'type\' of <component> \'"
+              << std::string(name_attr) << "\' is not set" << Logger::endl;
           return false;
         }
         if (!dc_->loadComponent(name_attr, type_attr)) {
-          RTT::log(RTT::Error) << "Unable to load component \'"
+          Logger::log() << Logger::Error << "Unable to load component \'"
               << std::string(name_attr) << "\' of type \'"
-              << std::string(type_attr) << "\'" << RTT::endlog();
+              << std::string(type_attr) << "\'" << Logger::endl;
           return false;
         }
       }
@@ -1799,8 +1827,8 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
         const char* service_name_elem = service_elem->Attribute("package");
 
         if (!service_name_elem) {
-          RTT::log(RTT::Error) << "wrong service definition for component\'"
-              << std::string(name_attr) << "\'" << RTT::endlog();
+          Logger::log() << Logger::Error << "wrong service definition for component\'"
+              << std::string(name_attr) << "\'" << Logger::endl;
           return false;
         }
 
@@ -1837,9 +1865,9 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
             std::make_pair<std::string, std::string>(std::string(alias_attr),
                                                      std::string(name_attr)));
       } else {
-        RTT::log(RTT::Error)
+        Logger::log() << Logger::Error
             << "wrong <io_buffer> definition: missing \'alias\' or \'name\' attribute"
-            << RTT::endlog();
+            << Logger::endl;
         return false;
       }
 
@@ -1864,33 +1892,33 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
         const char *conn_policy_type_attr = conn_policy_elem->Attribute("type");
         const char *conn_policy_size_attr = conn_policy_elem->Attribute("size");
         if (!conn_policy_type_attr) {
-          RTT::log(RTT::Error)
+          Logger::log() << Logger::Error
               << "'type' attribute must be defined for connection policy."
-              << RTT::endlog();
+              << Logger::endl;
           return false;
         }
 
         int buffer_size = 0;
         if (conn_policy_size_attr) {
           if (sscanf(conn_policy_size_attr, "%d", &buffer_size) != 1) {
-            RTT::log(RTT::Error)
+            Logger::log() << Logger::Error
                 << "could not parse 'size' attribute connection policy."
-                << RTT::endlog();
+                << Logger::endl;
             return false;
           }
           if (buffer_size <= 0) {
-            RTT::log(RTT::Error)
+            Logger::log() << Logger::Error
                 << "wrong 'size' attribute in connection policy: "
-                << buffer_size << RTT::endlog();
+                << buffer_size << Logger::endl;
             return false;
           }
         }
 
         if (strcmp(conn_policy_type_attr, "data") == 0) {
           if (conn_policy_size_attr) {
-            RTT::log(RTT::Error)
+            Logger::log() << Logger::Error
                 << "'size' attribute should not be defined for 'data' connection policy."
-                << RTT::endlog();
+                << Logger::endl;
             return false;
           }
           cp.type = ConnPolicy::DATA;
@@ -1898,9 +1926,9 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
           // do nothing, this is the default connection policy
         } else if (strcmp(conn_policy_type_attr, "buffer") == 0) {
           if (!conn_policy_size_attr) {
-            RTT::log(RTT::Error)
+            Logger::log() << Logger::Error
                 << "'size' attribute must be defined for 'buffer' connection policy."
-                << RTT::endlog();
+                << Logger::endl;
             return false;
           }
           cp.lock_policy = ConnPolicy::LOCK_FREE;
@@ -1908,19 +1936,19 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
           cp.size = buffer_size;
         } else if (strcmp(conn_policy_type_attr, "circular_buffer") == 0) {
           if (!conn_policy_size_attr) {
-            RTT::log(RTT::Error)
+            Logger::log() << Logger::Error
                 << "'size' attribute must be defined for 'circular_buffer' connection policy."
-                << RTT::endlog();
+                << Logger::endl;
             return false;
           }
           cp.lock_policy = ConnPolicy::LOCK_FREE;
           cp.type = ConnPolicy::CIRCULAR_BUFFER;
           cp.size = buffer_size;
-          RTT::log(RTT::Info) << "creating circular buffer of size "
-              << buffer_size << "" << RTT::endlog();
+          Logger::log() << Logger::Info << "creating circular buffer of size "
+              << buffer_size << "" << Logger::endl;
         } else {
-          RTT::log(RTT::Error) << "'type' attribute has wrong value: "
-              << std::string(conn_policy_type_attr) << RTT::endlog();
+          Logger::log() << Logger::Error << "'type' attribute has wrong value: "
+              << std::string(conn_policy_type_attr) << Logger::endl;
           return false;
         }
       }
@@ -1932,21 +1960,21 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
         std::string latex;
         if (name_attr) {
           name = name_attr;
-          RTT::log(RTT::Info) << "connection " << from << "->" << to
-              << "  has name: " << name << RTT::endlog();
+          Logger::log() << Logger::Info << "connection " << from << "->" << to
+              << "  has name: " << name << Logger::endl;
         } else {
-          RTT::log(RTT::Warning) << "connection " << from << "->" << to
-              << "  has no name" << RTT::endlog();
+          Logger::log() << Logger::Warning << "connection " << from << "->" << to
+              << "  has no name" << Logger::endl;
         }
         if (latex_attr) {
           latex = latex_attr;
-          //RTT::log(RTT::Info) << "connection " << from << "->" << to << "  has name: " << name << RTT::endlog();
+          //Logger::log() << Logger::Info << "connection " << from << "->" << to << "  has name: " << name << Logger::endl;
         }
         connections_.push_back(Connection(from, to, name, latex, cp));
       } else {
-        RTT::log(RTT::Error)
+        Logger::log() << Logger::Error
             << "wrong connection definition: missing \'from\' or \'to\' attribute"
-            << RTT::endlog();
+            << Logger::endl;
         return false;
       }
 
@@ -1966,9 +1994,9 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
             std::make_pair<std::string, std::string>(std::string(port_attr),
                                                      std::string(topic_attr)));
       } else {
-        RTT::log(RTT::Error)
+        Logger::log() << Logger::Error
             << "wrong ros_stream definition: missing \'port\' or \'topic\' attribute"
-            << RTT::endlog();
+            << Logger::endl;
         return false;
       }
       ros_stream_elem = ros_stream_elem->NextSiblingElement("ros_stream");
@@ -1989,9 +2017,9 @@ bool SubsystemDeployer::runXmls(const std::vector<std::string>& xmlFiles) {
           latched_connections_.push_back(
               std::pair<std::string, std::string>(from_attr, to_attr));
         } else {
-          RTT::log(RTT::Error)
+          Logger::log() << Logger::Error
               << "wrong latched_connections definition: missing \'from\' or \'to\' attribute"
-              << RTT::endlog();
+              << Logger::endl;
           return false;
         }
         components_elem = components_elem->NextSiblingElement("components");
@@ -2023,10 +2051,10 @@ bool SubsystemDeployer::runScripts(
         /*                        if ( deploymentOnlyChecked ) {
          if (!dc_->loadComponents( (*iter) )) {
          result = false;
-         log(Error) << "Failed to load file: '"<< (*iter) <<"'." << endlog();
+         Logger::log() << Logger::Error << "Failed to load file: '"<< (*iter) <<"'." << Logger::endl;
          } else if (!dc_.configureComponents()) {
          result = false;
-         log(Error) << "Failed to configure file: '"<< (*iter) <<"'." << endlog();
+         Logger::log() << Logger::Error << "Failed to configure file: '"<< (*iter) <<"'." << Logger::endl;
          }
          // else leave result=true and continue
          } else {*/
@@ -2041,9 +2069,9 @@ bool SubsystemDeployer::runScripts(
         result = dc_->runScript((*iter)) && result;
         continue;
       }
-      log(Error) << "Unknown extension of file: '" << (*iter)
+      Logger::log() << Logger::Error << "Unknown extension of file: '" << (*iter)
           << "'. Must be xml, cpf for XML files or, ops, osd or lua for script files."
-          << endlog();
+          << Logger::endl;
     }
   }
   return result;

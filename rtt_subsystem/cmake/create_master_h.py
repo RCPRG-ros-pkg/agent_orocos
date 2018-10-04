@@ -122,7 +122,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("public:\n")
     s.write("    PredicateRegistrar(predicateFunction func, std::string func_name)\n")
     s.write("    {\n")
-    s.write("        std::cout << \"PredicateRegistrar: \" << func_name << std::endl;\n")
+    s.write("        RTT::Logger::log() << RTT::Logger::Debug << \"PredicateRegistrar: \" << func_name << RTT::Logger::endl;\n")
     s.write("        // register the class factory function\n")
     s.write("        PredicateFactory::Instance()->RegisterFunction(func_name, func);\n")
     s.write("    }\n")

@@ -57,7 +57,6 @@ int main(int argc, char** argv)
 
     while(!found && optIndex<argc)
     {
-//        std::cout << "arg: \'" << argv[optIndex] << "\'" << std::endl;
         found = (0 == strcmp("--", argv[optIndex]));
         if(!found) optIndex++;
     }
@@ -125,7 +124,6 @@ int main(int argc, char** argv)
 	if (0 == __os_init(argc, argv)) {
         RTT::Logger::log().setStdStream(std::cerr);
         RTT::Logger::log().mayLogStdOut(true);
-        RTT::Logger::log().setLogLevel(RTT::Logger::Info);
 
         if (!depl.initializeSubsystem(master_package_name, subsystem_subname, cpu_num)) {
             return -2;

@@ -35,6 +35,8 @@
 #include "rtt/Component.hpp"
 #include "rtt/RTT.hpp"
 
+using namespace RTT;
+
 namespace subsystem_common {
 
 class ConverterBase {
@@ -144,7 +146,7 @@ public:
                 return factoryFunctionRegistryCreate_[i]();
             }
         }
-        std::cout << "PortConverterFactory::createConverter: ERROR: converter not found" << std::endl;
+        Logger::log() << Logger::Error << "PortConverterFactory::createConverter: ERROR: converter not found" << Logger::endl;
         return NULL;
     }
 
@@ -160,7 +162,7 @@ class PortConverterRegistrar {
 public:
     PortConverterRegistrar(const std::string &name)
     {
-        std::cout << "PortConverterRegistrar: " << name << std::endl;
+        Logger::log() << Logger::Info << "PortConverterRegistrar: " << name << Logger::endl;
 
         // register the class factory function 
         PortConverterFactory::Instance()->RegisterFactoryFunction(&T::isCompatible, [](void) -> ConverterBase * { return new T();}, name);
@@ -215,7 +217,7 @@ public:
 
         std::shared_ptr<ConverterPorts<TYPE_FROM, TYPE_TO> > pconv(new ConverterPorts<TYPE_FROM, TYPE_TO>(name));
         if (!pconv->initialize()) {
-            RTT::Logger::log() << RTT::Logger::Error << "could not load ConverterPorts: '" << name << "'" << RTT::Logger::endl;
+            Logger::log() << RTT::Logger::Error << "could not load ConverterPorts: '" << name << "'" << Logger::endl;
             initialized_ = false;
             return false;
         }

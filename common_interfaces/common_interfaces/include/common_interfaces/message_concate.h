@@ -52,9 +52,9 @@ public:
         Logger::In in(std::string("MessageConcate::MessageConcate (") + name + ")");
 
         RTT::DataFlowInterface::Ports p = this->ports()->getPorts();
-        log(RTT::Info) << "Ports:" << Logger::endl;
+        Logger::log() << Logger::Info << "Ports:" << Logger::endl;
         for (int i = 0; i < p.size(); ++i) {
-            log(RTT::Info) << "    " << p[i]->getName() << Logger::endl;
+            Logger::log() << Logger::Info << "    " << p[i]->getName() << Logger::endl;
         }
     }
 
