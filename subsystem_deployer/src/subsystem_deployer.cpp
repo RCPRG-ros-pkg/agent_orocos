@@ -148,52 +148,6 @@ class SubsystemDeployerRosService : public SubsystemDeployerRosServiceBase {
         ci.port_to = port_out;
         ci.unconnected = false;
         addConnection(ci);
-
-        /*
-         Logger::log() << Logger::Debug << "Connection ends at port: " << port_out << Logger::endl;
-         Logger::log() << Logger::Debug << "Connection ends at component: " << comp_out << Logger::endl;
-         std::stringstream ss;
-         // Only consider input ports
-         if(dynamic_cast<base::InputPortInterface*>(sv->getPort(comp_ports[j])) != 0){
-         // First, consider regular connections
-         if(!comp_in.empty()){
-         // If the ConnPolicy has a non-empty name, use that name as the topic name
-         if(!cp.name_id.empty()){
-         // plot the channel element as a seperate box and connect input and output with it
-         m_dot << quote(cp.name_id) << "[" << m_chan_args << "label=" << quote(cp.name_id) << "];\n";
-         m_dot << quote(comp_in) << "->" << quote(cp.name_id) << "[" << m_conn_args << "label=" << quote(port_in) << "];\n";
-         m_dot << quote(cp.name_id) << "->" << quote(comp_out) << "[" << m_conn_args << "label=" << quote(port_out) << "];\n";
-         }
-         // Else, use a custom name: compInportIncompOutportOut
-         else{
-         // plot the channel element as a seperate box and connect input and output with it
-         m_dot << quote(comp_in) << "->" << quote(comp_in + port_in + comp_out + port_out) << "[" << m_conn_args << "label=" << quote(port_in) << "];\n";
-         m_dot << quote(comp_in + port_in + comp_out + port_out) << "->" << comp_out << "[" << m_conn_args << "label=" << quote(port_out) << "];\n";
-         }
-         }
-         // Here, we have a stream?!
-         else{
-         m_dot << quote(comp_out + port_out) << "->" << quote(comp_out) << "[" << m_conn_args << "label=" << quote(port_out) << "];\n";
-         }
-         }
-         else{
-         // Consider only output ports that do not have a corresponding input port
-         if(comp_out.empty()){
-         // If the ConnPolicy has a non-empty name, use that name as the topic name
-         if(!cp.name_id.empty()){
-         // plot the channel element as a seperate box and connect input and output with it
-         m_dot << quote(cp.name_id) << "[" << m_chan_args << "label=" << quote(cp.name_id) << "];\n";
-         m_dot << quote(comp_in) << "->" << quote(cp.name_id) << "[" << m_conn_args << "label=" << quote(port_in) << "];\n";
-         }
-         else{
-         // plot the channel element as a seperate box and connect input and output with it
-         m_dot << quote(comp_in) << "->" << quote( comp_in + port_in) << "[" << m_conn_args << "label=" << quote(port_in) << "];\n";
-         }
-         }
-         else {
-         }
-         }
-         */
       }
     }
     // Recurse:
@@ -1464,7 +1418,7 @@ bool SubsystemDeployer::configure(int rt_prio) {
   if (stream_component_) {
     if (!stream_component_->setPeriod(0.01)) {
       Logger::log() << Logger::Error << "could not change period of component \'"
-          << diag_component_->getName() << Logger::endl;
+          << stream_component_->getName() << Logger::endl;
       return false;
     }
     stream_component_->configure();

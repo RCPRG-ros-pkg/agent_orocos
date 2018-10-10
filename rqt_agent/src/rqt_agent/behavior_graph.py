@@ -445,4 +445,6 @@ class BehaviorGraphDialog(QDialog):
                 for comp_name in self.nodes[graph_name]:
                     if comp_name in self.components_state:
                         self.nodes[graph_name][comp_name].setBrush(getComponentBrush(self.components_state[comp_name]))
+                    else:
+                        self.nodes[graph_name][comp_name].setBrush(QBrush(QColor(200,200,200)))
 
