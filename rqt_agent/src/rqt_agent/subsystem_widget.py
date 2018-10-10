@@ -575,7 +575,7 @@ class SubsystemWidget(QWidget):
                 self.dialogBehaviorGraph.addGraph(graph_name, graph_str)
 
             self.dialogBehaviorGraph.showGraph("<all>")
-              
+
         # state machine (fsm)
             self.state_machine_graph = self.genStateMachineGraph(self.subsystem_info)
             graph_str = self.state_machine_graph.exportToPlain()
@@ -600,7 +600,7 @@ class SubsystemWidget(QWidget):
         #
         self.dialogComponents.updateState(components_state, components_diag_msgs)
         self.dialogBehaviorGraph.updateState(components_state)
-        
+
         #rospy.wait_for_service('/' + name = '/getSubsystemInfo')
         if self.subsystem_info == None:
             try:

@@ -320,7 +320,6 @@ class SystemWidget(QWidget):
 #                for 
                 # TODO
                 self.structure_changed = False
-
         while True:
             repeat = False
             for s in self.all_subsystems:

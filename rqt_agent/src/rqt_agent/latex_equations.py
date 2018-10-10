@@ -46,6 +46,7 @@ def exportToEpsList(eps_file_list, latex_formulas):
 
     # generate dvi file from latex document
     subprocess.call(['latex', '-output-directory=/tmp'], stdin=in_read)
+    os.close(in_read)
 
     page_num = 1
     for (handle, path) in eps_file_list:

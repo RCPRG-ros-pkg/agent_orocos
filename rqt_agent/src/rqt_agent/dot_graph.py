@@ -148,6 +148,7 @@ class Graph:
         os.write(in_write, dot)
         os.close(in_write)
         subprocess.call(['dot', '-Teps', '-o'+filename+'.eps'], stdin=in_read)
+        os.close(in_read)
 
         latex_equations.removeEpsListFiles(eps_file_list)
 
@@ -163,8 +164,10 @@ class Graph:
 
         out_read, out_write = os.pipe()
         subprocess.call(['dot', '-Tplain'], stdin=in_read, stdout=out_write)
+        os.close(in_read)
         graph_str = os.read(out_read, 1000000)
         os.close(out_read)
+        os.close(out_write)
         graph_str = graph_str.replace("\\\n", "")
 
         return graph_str
