@@ -39,13 +39,14 @@
 #include <common_interfaces/interface_ports_fwd.h>
 
 using namespace RTT;
+using std::string;
 
 namespace interface_ports {
 
 template <typename T >
 class InputPort : public InputPortInterface<T > {
 public:
-    explicit InputPort(RTT::TaskContext *tc, const std::string &port_name)
+    explicit InputPort(RTT::TaskContext *tc, const string &port_name)
         : port_(new RTT::InputPort<T >(port_name + "_INPORT"))
         , tc_(tc)
     {
@@ -74,7 +75,7 @@ protected:
 template <typename T >
 class OutputPort : public OutputPortInterface<T > {
 public:
-    explicit OutputPort(RTT::TaskContext *tc, const std::string &port_name)
+    explicit OutputPort(RTT::TaskContext *tc, const string &port_name)
         : port_(new RTT::OutputPort<T >(port_name + "_OUTPORT", false) )
         , tc_(tc)
     {
@@ -105,17 +106,17 @@ template <typename T >
 class InputPortInterfaceFactory
 {
 private:
-    std::map<string, InputPortInterface<T >* (*)(RTT::TaskContext *tc, const std::string& prefix) > factoryFunctionRegistry;
+    std::map<string, InputPortInterface<T >* (*)(RTT::TaskContext *tc, const string& prefix) > factoryFunctionRegistry;
 
     InputPortInterfaceFactory() {}
 
 public:
-    boost::shared_ptr<InputPortInterface<T > > Create(string name, RTT::TaskContext *tc, const std::string& prefix)
+    boost::shared_ptr<InputPortInterface<T > > Create(string name, RTT::TaskContext *tc, const string& prefix)
     {
         InputPortInterface<T > * instance = NULL;
 
         // find name in the registry and call factory method.
-        typename std::map<string, InputPortInterface<T >* (*)(RTT::TaskContext *tc, const std::string& prefix) >::const_iterator it = factoryFunctionRegistry.find(name);
+        typename std::map<string, InputPortInterface<T >* (*)(RTT::TaskContext *tc, const string& prefix) >::const_iterator it = factoryFunctionRegistry.find(name);
         if(it != factoryFunctionRegistry.end())
             instance = it->second(tc, prefix);
 
@@ -126,7 +127,7 @@ public:
             return boost::shared_ptr<InputPortInterface<T > >();
     }
 
-    void RegisterFactoryFunction(string name, InputPortInterface<T >* (*classFactoryFunction)(RTT::TaskContext *tc, const std::string& prefix) )
+    void RegisterFactoryFunction(string name, InputPortInterface<T >* (*classFactoryFunction)(RTT::TaskContext *tc, const string& prefix) )
     {
         // register the class factory function
         factoryFunctionRegistry[name] = classFactoryFunction;
@@ -140,14 +141,14 @@ public:
 };
 
 template<class T>
-InputPortInterface<typename T::Container_ >* InputPortInterfaceFactoryFunction(RTT::TaskContext *tc, const std::string& prefix) {
+InputPortInterface<typename T::Container_ >* InputPortInterfaceFactoryFunction(RTT::TaskContext *tc, const string& prefix) {
     return new T(tc, prefix);
 }
 
 template<class T>
 class InputPortInterfaceRegistrar {
 public:
-    InputPortInterfaceRegistrar(const std::string& name)
+    InputPortInterfaceRegistrar(const string& name)
     {
         Logger::log() << Logger::Debug << "registering InputPortInterface: " << name << Logger::endl;
         // register the class factory function 
@@ -159,17 +160,17 @@ template <typename T >
 class OutputPortInterfaceFactory
 {
 private:
-    std::map<string, OutputPortInterface<T >* (*)(RTT::TaskContext *tc, const std::string& prefix) > factoryFunctionRegistry;
+    std::map<string, OutputPortInterface<T >* (*)(RTT::TaskContext *tc, const string& prefix) > factoryFunctionRegistry;
 
     OutputPortInterfaceFactory() {}
 
 public:
-    boost::shared_ptr<OutputPortInterface<T > > Create(string name, RTT::TaskContext *tc, const std::string& prefix)
+    boost::shared_ptr<OutputPortInterface<T > > Create(string name, RTT::TaskContext *tc, const string& prefix)
     {
         OutputPortInterface<T > * instance = NULL;
 
         // find name in the registry and call factory method.
-        typename std::map<string, OutputPortInterface<T >* (*)(RTT::TaskContext *tc, const std::string& prefix) >::const_iterator it = factoryFunctionRegistry.find(name);
+        typename std::map<string, OutputPortInterface<T >* (*)(RTT::TaskContext *tc, const string& prefix) >::const_iterator it = factoryFunctionRegistry.find(name);
         if(it != factoryFunctionRegistry.end())
             instance = it->second(tc, prefix);
 
@@ -180,7 +181,7 @@ public:
             return boost::shared_ptr<OutputPortInterface<T > >();
     }
 
-    void RegisterFactoryFunction(string name, OutputPortInterface<T >* (*classFactoryFunction)(RTT::TaskContext *tc, const std::string& prefix) )
+    void RegisterFactoryFunction(string name, OutputPortInterface<T >* (*classFactoryFunction)(RTT::TaskContext *tc, const string& prefix) )
     {
         // register the class factory function
         factoryFunctionRegistry[name] = classFactoryFunction;
@@ -194,14 +195,14 @@ public:
 };
 
 template<class T>
-OutputPortInterface<typename T::Container_ >* OutputPortInterfaceFactoryFunction(RTT::TaskContext *tc, const std::string& prefix) {
+OutputPortInterface<typename T::Container_ >* OutputPortInterfaceFactoryFunction(RTT::TaskContext *tc, const string& prefix) {
     return new T(tc, prefix);
 }
 
 template<class T>
 class OutputPortInterfaceRegistrar {
 public:
-    OutputPortInterfaceRegistrar(const std::string& name)
+    OutputPortInterfaceRegistrar(const string& name)
     {
         Logger::log() << Logger::Debug << "registering OutputPortInterface: " << name << Logger::endl;
         // register the class factory function 

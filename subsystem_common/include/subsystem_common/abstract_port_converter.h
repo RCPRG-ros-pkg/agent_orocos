@@ -36,6 +36,7 @@
 #include "rtt/RTT.hpp"
 
 using namespace RTT;
+using std::function;
 
 namespace subsystem_common {
 
