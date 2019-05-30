@@ -211,7 +211,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
         s.write("    " + p.getTypeCpp() + " cmd_out_" + p.alias + "_;\n")
         s.write("    RTT::InputPort<" + p.getTypeCpp() + " > port_" + p.alias + "_in_;\n")
         if p.converter:
-            s.write("    shared_ptr<common_interfaces::BufferConverter<" + p.getTypeCpp() + " > >converter_" + p.alias + "_;\n")
+            s.write("    std::shared_ptr<common_interfaces::BufferConverter<" + p.getTypeCpp() + " > >converter_" + p.alias + "_;\n")
 
     s.write("};\n\n")
 
