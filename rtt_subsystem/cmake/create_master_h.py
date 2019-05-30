@@ -90,7 +90,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("class PredicateFactory\n")
     s.write("{\n")
     s.write("private:\n")
-    s.write("    map<string, predicateFunction > functionRegistry;\n\n")
+    s.write("    std::map<std::string, predicateFunction > functionRegistry;\n\n")
 
     s.write("    PredicateFactory() {}\n\n")
 
@@ -102,12 +102,12 @@ def generate_boost_serialization(package, port_def, output_cpp):
     s.write("        functionRegistry[name] = func;\n")
     s.write("    }\n\n")
 
-    s.write("    const map<string, predicateFunction >& getPredicates() const {\n")
+    s.write("    const std::map<std::string, predicateFunction >& getPredicates() const {\n")
     s.write("        return functionRegistry;\n")
     s.write("    }\n\n")
 
     s.write("    predicateFunction getPredicate(const std::string &name) const {\n")
-    s.write("        map<string, predicateFunction >::const_iterator it = functionRegistry.find( name );\n")
+    s.write("        std::map<std::string, predicateFunction >::const_iterator it = functionRegistry.find( name );\n")
     s.write("        return it->second;\n")
     s.write("    }\n\n")
 
