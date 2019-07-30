@@ -1486,7 +1486,7 @@ bool SubsystemDeployer::configure(int rt_prio) {
     std::map<std::string, std::string>::const_iterator it =
         components_ros_action_.find(conman_peers[i]->getName());
     if (it != components_ros_action_.end()) {
-      conman_peers[i]->engine()->setMaster(0);
+//      conman_peers[i]->engine()->setMaster(0);
     }
   }
 
