@@ -48,6 +48,7 @@ class SubsystemDiag:
         self.state_switch_info = []
         self.current_predicates = None
         self.current_period = None
+        self.period_histogram = []
 
 def parsePredicates(pred_str):
     pred_list = pred_str.split(",")
@@ -106,6 +107,15 @@ def parseMasterComponentDiag(diag_xml):
     period = mcd[0].getElementsByTagName("p")
     if len(period) == 1:
         result.current_period = float(period[0].childNodes[0].data)
+
+    # period histogram
+    ph = mcd[0].getElementsByTagName("ph")
+    if len(ph) == 1:
+        histogram_str = ph[0].childNodes[0].data
+        histogram_str = histogram_str.strip()
+        histogram_list_str = histogram_str.split()
+        for v_str in histogram_list_str:
+            result.period_histogram.append( int(v_str) )
 
     return result
 

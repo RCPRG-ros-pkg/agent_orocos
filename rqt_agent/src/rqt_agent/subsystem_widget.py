@@ -26,6 +26,7 @@
 import os
 import subprocess
 import copy
+import math
 
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Qt, Signal, Slot
@@ -36,6 +37,9 @@ from rospy.exceptions import ROSException
 
 import tempfile
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 from subsystem_msgs.srv import *
 import subsystem_common
 
@@ -45,6 +49,7 @@ import subsystem_components
 import subsystem_state_history
 import dot_graph
 import latex_equations
+
 
 class SubsystemWidget(QWidget):
     """
@@ -95,12 +100,10 @@ class SubsystemWidget(QWidget):
 
     @Slot()
     def on_click_showBehaviorGraph(self):
-        #self.dialogBehaviorGraph.exec_()
         self.dialogBehaviorGraph.show()
 
     @Slot()
     def on_click_showStateHistory(self):
-        #self.dialogBehaviorGraph.exec_()
         self.dialogStateHistory.show()
 
     @Slot()
@@ -110,6 +113,31 @@ class SubsystemWidget(QWidget):
     @Slot()
     def on_click_showStateMachineGraph(self):
         self.dialogStateMachineGraph.show()
+
+    @Slot()
+    def on_click_showPeriodHistogram(self):
+        #self.dialogBehaviorGraph.show()
+        if not self.period_histogram is None:
+
+            ranges = [0.0001, 0.0002, 0.0003, 0.0004, 0.0006, 0.0008, 0.001, 0.0012,
+                        0.0014, 0.0016, 0.002, 0.0024, 0.0028, 0.0032, 0.0038, 0.0050,
+                        0.0060, 0.0080, 0.01, 0.02, 0.03, 0.05,]
+            ranges_str = []
+            for val in ranges:
+                ranges_str.append( str(val*1000) )
+            ranges_str.append( '>' )
+
+            x = np.arange(len(self.period_histogram))
+            y = self.period_histogram
+            y_log = []
+            for val in y:
+                if val == 0:
+                    y_log.append( 0 )
+                else:
+                    y_log.append( math.log(val) )
+            plt.bar(x, y_log)
+            plt.xticks(x, ranges_str)
+            plt.show()
 
     def __init__(self, plugin=None, name=None):
         """
@@ -142,6 +170,7 @@ class SubsystemWidget(QWidget):
         self.subsystem_info = None
         self.state = ''
         self.behavior = ''
+        self.period_histogram = None
 
         self.all_buffers = {}
         self.resetBuffersLayout()
@@ -162,6 +191,7 @@ class SubsystemWidget(QWidget):
         self.dialogStateMachineGraph = fsm_graph.StateMachineGraphDialog(self.subsystem_name, self)
         self.showStateMachineGraph.clicked.connect(self.on_click_showStateMachineGraph)
 
+        self.showPeriodHistogram.clicked.connect(self.on_click_showPeriodHistogram)
 
     def isInitialized(self):
         return self.initialized
@@ -626,6 +656,7 @@ class SubsystemWidget(QWidget):
             self.dialogStateHistory.updateState(mcd)
             self.dialogStateMachineGraph.updateState(mcd)
             self.PeriodWall.setText(str(mcd.current_period*1000.0) + 'ms')
+            self.period_histogram = mcd.period_histogram
         else:
             self.SubsystemState.setText("unknown")
             self.PeriodWall.setText("unknown")

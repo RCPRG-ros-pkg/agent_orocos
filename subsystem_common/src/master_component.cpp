@@ -238,6 +238,9 @@ private:
     double read_buffer_timeout_;
     bool use_sim_time_;
     ros::Time time_last_s_;
+
+    std::vector<unsigned int > period_histogram_;
+    std::vector<float > period_histogram_ranges_;
 };
 
 void MasterComponent::setThreadName(const std::string& thread_name) {
@@ -346,6 +349,13 @@ std::string MasterComponent::getDiag() {
     strs << "<int3>" << interval3_ << "</int3>";
     strs << "<int4>" << interval4_ << "</int4>";
     strs << "<int5>" << interval5_ << "</int5>";
+
+    // write histogram of period
+    strs << "<ph>";
+    for (int i=0; i < period_histogram_.size(); ++i) {
+        strs << period_histogram_[i] << " ";
+    }
+    strs << "</ph>";
 
     strs << "</mcd>";
 
@@ -562,6 +572,33 @@ bool MasterComponent::configureHook() {
     // run this function for proper initialization of predicate functions
     master_service_->calculatePredicates(in_data_, scheme_peers_const_, predicate_list_);
 
+
+    // prepare data structures for histogram of period time
+    period_histogram_ranges_.push_back(0.0001);
+    period_histogram_ranges_.push_back(0.0002);
+    period_histogram_ranges_.push_back(0.0003);
+    period_histogram_ranges_.push_back(0.0004);
+    period_histogram_ranges_.push_back(0.0006);
+    period_histogram_ranges_.push_back(0.0008);
+    period_histogram_ranges_.push_back(0.001);
+    period_histogram_ranges_.push_back(0.0012);
+    period_histogram_ranges_.push_back(0.0014);
+    period_histogram_ranges_.push_back(0.0016);
+    period_histogram_ranges_.push_back(0.002);
+    period_histogram_ranges_.push_back(0.0024);
+    period_histogram_ranges_.push_back(0.0028);
+    period_histogram_ranges_.push_back(0.0032);
+    period_histogram_ranges_.push_back(0.0038);
+    period_histogram_ranges_.push_back(0.0050);
+    period_histogram_ranges_.push_back(0.0060);
+    period_histogram_ranges_.push_back(0.0080);
+    period_histogram_ranges_.push_back(0.01);
+    period_histogram_ranges_.push_back(0.02);
+    period_histogram_ranges_.push_back(0.03);
+    period_histogram_ranges_.push_back(0.05);
+
+    period_histogram_.resize(period_histogram_ranges_.size()+1, 0);
+
     return true;
 }
 
@@ -616,9 +653,8 @@ static void timespec_diff(struct timespec *start, struct timespec *stop,
 void MasterComponent::updateHook() {
     // What time is it
     RTT::os::TimeService::nsecs now = RTT::os::TimeService::Instance()->getNSecs();
-    RTT::os::TimeService::Seconds
-        time = RTT::nsecs_to_Seconds(now),
-        period = RTT::nsecs_to_Seconds(RTT::os::TimeService::Instance()->getNSecs(last_update_time_));
+    RTT::os::TimeService::Seconds time = RTT::nsecs_to_Seconds(now);
+    //period = RTT::nsecs_to_Seconds(RTT::os::TimeService::Instance()->getNSecs(last_update_time_));
 
     ros::Time time1 = rtt_rosclock::rtt_wall_now();
 
@@ -628,6 +664,29 @@ void MasterComponent::updateHook() {
     // Compute statistics describing how often update is being called
     last_exec_period_ = time - last_exec_time_;
     last_exec_time_ = time;
+    bool period_in_range = false;
+    for (int i=0; i < period_histogram_ranges_.size(); ++i) {
+        if (last_exec_period_ < period_histogram_ranges_[i]) {
+            if (period_histogram_[i] >= 4294967295) {
+                // clear the histogram
+                for (int j=0; j < period_histogram_.size(); ++j) {
+                    period_histogram_[j] = 0;
+                }
+            }
+            ++period_histogram_[i];
+            period_in_range = true;
+            break;
+        }
+    }
+    if (!period_in_range) {
+        if (period_histogram_[period_histogram_.size()-1] >= 4294967295) {
+            for (int j=0; j < period_histogram_.size(); ++j) {
+                // clear the histogram
+                period_histogram_[j] = 0;
+            }
+        }
+        ++period_histogram_[period_histogram_.size()-1];
+    }
 
     // iterationBegin callback can be used by e.g. Gazebo simulator
     master_service_->iterationBegin();
