@@ -125,19 +125,29 @@ class SubsystemWidget(QWidget):
             ranges_str = []
             for val in ranges:
                 ranges_str.append( str(val*1000) )
-            ranges_str.append( '>' )
 
             x = np.arange(len(self.period_histogram))
             y = self.period_histogram
             y_log = []
-            for val in y:
-                if val == 0:
+            for idx in range(len(y)):
+                val = y[idx]
+                if self.prev_period_histogram is None:
+                    prev_val = 0
+                else:
+                    prev_val = self.prev_period_histogram[idx]
+                val_rel = val - prev_val
+                if val_rel == 0:
                     y_log.append( 0 )
                 else:
-                    y_log.append( math.log(val) )
+                    y_log.append( val_rel )#math.log(val_rel) )
             plt.bar(x, y_log)
-            plt.xticks(x, ranges_str)
+            plt.xticks(x[0:-1]+0.5, ranges_str)
+
+            #plt.yticks(x[0:-1]+0.5, ranges_str)
+
             plt.show()
+
+            self.prev_period_histogram = np.copy(self.period_histogram)
 
     def __init__(self, plugin=None, name=None):
         """
@@ -171,6 +181,7 @@ class SubsystemWidget(QWidget):
         self.state = ''
         self.behavior = ''
         self.period_histogram = None
+        self.prev_period_histogram = None
 
         self.all_buffers = {}
         self.resetBuffersLayout()
