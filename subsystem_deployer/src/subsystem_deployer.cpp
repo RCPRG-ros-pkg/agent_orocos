@@ -1348,71 +1348,101 @@ bool SubsystemDeployer::configure(int rt_prio) {
 
   // connect ROS topics
   for (std::list<std::pair<std::string, std::string> >::iterator it =
-      ros_streams_.begin(); it != ros_streams_.end(); ++it) {
-    RTT::base::PortInterface *pi = strToPort(it->first);
-    if (NULL == pi) {
-      Logger::log() << Logger::Error << "Streamed port \'" << it->first
-          << "\' does not exist." << Logger::endl;
-      return false;
-    }
+                    ros_streams_.begin(); it != ros_streams_.end(); ++it) {
+        RTT::base::PortInterface *pi = strToPort(it->first);
+        if (NULL == pi) {
+          Logger::log() << Logger::Error << "Streamed port \'" << it->first
+              << "\' does not exist." << Logger::endl;
+          return false;
+        }
 
-    if (NULL == dynamic_cast<RTT::base::OutputPortInterface*>(pi)) {
-      Logger::log() << Logger::Error << "Streamed port \'" << it->first
-          << "\' is not an output port. Input ports streaming is not supported."
-          << Logger::endl;
-      return false;
-    }
+        // Create streaming component if it does not exist
+        if (!stream_component_) {
+            const std::string comp_name = "streaming_component";
+            const std::string comp_type = "controller_common::BypassComponent";
+            if (!dc_->loadComponent(comp_name, comp_type)) {
+            Logger::log() << Logger::Error << "Unable to load component '" << comp_name
+                << "' of type '" << comp_type << "'" << Logger::endl;
+            return false;
+            }
 
-    if (!stream_component_) {
-      const std::string comp_name = "streaming_component";
-      const std::string comp_type = "controller_common::BypassComponent";
-      if (!dc_->loadComponent(comp_name, comp_type)) {
-        Logger::log() << Logger::Error << "Unable to load component '" << comp_name
-            << "' of type '" << comp_type << "'" << Logger::endl;
-        return false;
-      }
+            stream_component_ = dc_->getPeer(comp_name);
+            if (NULL == stream_component_) {
+            Logger::log() << Logger::Error << "Unable to get component '" << comp_name
+                << "' of type '" << comp_type << "'" << Logger::endl;
+            return false;
+            }
+            Logger::log() << Logger::Info << "Created streaming component '" << comp_name
+              << "' of type '" << comp_type << "'" << Logger::endl;
+            stream_addInputPort = stream_component_->getOperation("addInputPort");
+            if (!stream_addInputPort.ready()) {
+            Logger::log() << Logger::Error
+                << "Could not get 'addInputPort' operation for streaming component '"
+                << comp_name << "'" << Logger::endl;
+            return false;
+            }
+        }
 
-      stream_component_ = dc_->getPeer(comp_name);
-      if (NULL == stream_component_) {
-        Logger::log() << Logger::Error << "Unable to get component '" << comp_name
-            << "' of type '" << comp_type << "'" << Logger::endl;
-        return false;
-      }
-      Logger::log() << Logger::Info << "Created streaming component '" << comp_name
-          << "' of type '" << comp_type << "'" << Logger::endl;
-      stream_addInputPort = stream_component_->getOperation("addInputPort");
-      if (!stream_addInputPort.ready()) {
-        Logger::log() << Logger::Error
-            << "Could not get 'addInputPort' operation for streaming component '"
-            << comp_name << "'" << Logger::endl;
-        return false;
-      }
+        if (NULL == dynamic_cast<RTT::base::OutputPortInterface*>(pi)) {
+            // Create input stream
+            Logger::log() << Logger::Info << "Creating input ROS stream \'" << it->first
+                          << "\'" << Logger::endl;
 
-    }
-    std::shared_ptr < RTT::base::InputPortInterface > p_port = std::shared_ptr
-        < RTT::base::InputPortInterface
-        > (dynamic_cast<RTT::base::InputPortInterface*>(pi->antiClone()));
+            std::shared_ptr < RTT::base::InputPortInterface > p_port = std::shared_ptr
+                < RTT::base::InputPortInterface
+                > (dynamic_cast<RTT::base::InputPortInterface*>(pi->clone()));
 
-    stringstream ss;
-    ss << stream_count;
-    ++stream_count;
+            stringstream ss;
+            ss << stream_count;
+            ++stream_count;
 
-    p_port->setName(ss.str());
-    if (!stream_addInputPort(p_port)) {
-      Logger::log() << Logger::Error << "Could not add port '" << p_port->getName()
-          << "' to streaming component" << Logger::endl;
-      return false;
-    }
+            p_port->setName(ss.str());
+            if (!stream_addInputPort(p_port)) {
+              Logger::log() << Logger::Error << "Could not add port '" << p_port->getName()
+                  << "' to streaming component" << Logger::endl;
+              return false;
+            }
 
-    stream_connections.push_back(
-        std::make_pair(
-            it->first,
-            stream_component_->getName() + "." + p_port->getName()
-                + "_INPORT"));
-    streams.push_back(
-        std::make_pair(
-            stream_component_->getName() + "." + p_port->getName() + "_OUTPORT",
-            it->second));
+            // Connect to Orocos
+            stream_connections.push_back(
+                std::make_pair(
+                    stream_component_->getName() + "." + p_port->getName() + "_OUTPORT", it->first));
+            // Connect to ROS
+            streams.push_back(
+                std::make_pair(
+                    stream_component_->getName() + "." + p_port->getName() + "_INPORT", it->second));
+        }
+        else {
+            // Create output stream
+            Logger::log() << Logger::Info << "Creating output ROS stream \'" << it->first
+                          << "\'" << Logger::endl;
+            std::shared_ptr < RTT::base::InputPortInterface > p_port = std::shared_ptr
+                < RTT::base::InputPortInterface
+                > (dynamic_cast<RTT::base::InputPortInterface*>(pi->antiClone()));
+
+            stringstream ss;
+            ss << stream_count;
+            ++stream_count;
+
+            p_port->setName(ss.str());
+            if (!stream_addInputPort(p_port)) {
+              Logger::log() << Logger::Error << "Could not add port '" << p_port->getName()
+                  << "' to streaming component" << Logger::endl;
+              return false;
+            }
+
+            // Connect to Orocos
+            stream_connections.push_back(
+                std::make_pair(
+                    it->first,
+                    stream_component_->getName() + "." + p_port->getName()
+                        + "_INPORT"));
+            // Connect to ROS
+            streams.push_back(
+                std::make_pair(
+                    stream_component_->getName() + "." + p_port->getName() + "_OUTPORT",
+                    it->second));
+        }
   }
 
   if (stream_component_) {

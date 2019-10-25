@@ -39,6 +39,7 @@
 #include "rtt/os/TimeService.hpp"
 
 #include <diagnostic_msgs/DiagnosticArray.h>
+#include <std_msgs/String.h>
 
 using namespace RTT;
 
@@ -64,6 +65,7 @@ private:
 
     diagnostic_msgs::DiagnosticArray diag_out_;
     RTT::OutputPort<diagnostic_msgs::DiagnosticArray > port_diag_out_;
+    RTT::InputPort<std_msgs::String > port_str_in_;
 
     std::vector<TaskContext* > peers_;
     std::vector<Diag > diag_vec_;
@@ -88,9 +90,11 @@ static std::string getTaskStatusChar(RTT::TaskContext* t)
 
 DiagnosticComponent::DiagnosticComponent(const std::string &name) :
     TaskContext(name, PreOperational),
-    port_diag_out_("diag_OUTPORT", true)
+    port_diag_out_("diag_OUTPORT", true),
+    port_str_in_("str_INPORT")
 {
     this->ports()->addPort(port_diag_out_);
+    this->ports()->addPort(port_str_in_);
 }
 
 bool DiagnosticComponent::configureHook() {
@@ -176,6 +180,11 @@ void DiagnosticComponent::updateHook() {
         diag_out_.header.seq++;
         diag_out_.header.stamp = ros::Time::now();
         port_diag_out_.write(diag_out_);
+    }
+
+    std_msgs::String str;
+    if (port_str_in_.read(str) == RTT::NewData) {
+        std::cout << "port_str_in_.read(str): " << str << std::endl;
     }
 }
 
