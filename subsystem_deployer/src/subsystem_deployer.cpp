@@ -1700,6 +1700,7 @@ bool SubsystemDeployer::configure(int rt_prio) {
     return false;
   }
 
+  /*
   std::vector<RTT::TaskContext*> all_comp = getAllComponents();
   for (int i = 0; i < all_comp.size(); ++i) {
     RTT::Activity* act =
@@ -1714,8 +1715,8 @@ bool SubsystemDeployer::configure(int rt_prio) {
           << "\', activity: NULL" << Logger::endl;
     }
   }
-
-  Logger::log() << Logger::Info << "OK" << Logger::endl;
+  */
+  //Logger::log() << Logger::Info << "OK" << Logger::endl;
 
   is_initialized_ = true;
 
