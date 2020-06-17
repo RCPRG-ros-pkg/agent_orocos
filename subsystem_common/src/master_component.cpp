@@ -267,9 +267,9 @@ MasterComponent::MasterComponent(const std::string &name)
     , interval3_(0.0)
     , interval4_(0.0)
     , interval5_(0.0)
-    , read_buffer_timeout_(1.0)
+    , read_buffer_timeout_(0.0)
     , use_sim_time_(false)
-    , time_last_s_(rtt_rosclock::rtt_now())
+    , time_last_s_(0.0)
 {
     this->addOperation("getDiag", &MasterComponent::getDiag, this, RTT::ClientThread);
 
