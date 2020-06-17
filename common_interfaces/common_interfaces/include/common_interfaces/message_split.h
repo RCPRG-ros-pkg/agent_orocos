@@ -40,10 +40,12 @@ template <class Interface >
 class MessageSplit: public RTT::TaskContext {
 public:
 
-    explicit MessageSplit(const std::string& name) :
-        TaskContext(name),
-        out_(this),
-        port_msg_in_("msg_INPORT")
+    explicit MessageSplit(const std::string& name)
+        : TaskContext(name)
+        , out_(this)
+        , port_msg_in_("msg_INPORT")
+        , diag_buf_valid_(false)
+        , last_ports_time_(0.0)
     {
         this->ports()->addPort(port_msg_in_);
         this->addOperation("getDiag", &MessageSplit::getDiag, this, RTT::ClientThread);

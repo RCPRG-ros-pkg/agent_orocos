@@ -40,10 +40,12 @@ template <class Interface >
 class MessageConcate: public RTT::TaskContext {
 public:
 
-    explicit MessageConcate(const std::string& name) :
-        TaskContext(name),
-        in_(this),
-        port_msg_out_("msg_OUTPORT")
+    explicit MessageConcate(const std::string& name)
+        : TaskContext(name)
+        , in_(this)
+        , port_msg_out_("msg_OUTPORT")
+        , diag_buf_valid_(false)
+        , last_ports_time_(0.0)
     {
         this->ports()->addPort(port_msg_out_);
         this->addOperation("getDiag", &MessageConcate::getDiag, this, RTT::ClientThread);

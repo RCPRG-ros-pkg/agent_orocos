@@ -49,6 +49,12 @@ using namespace RTT;
 
 class DiagStateSwitch {
 public:
+    DiagStateSwitch()
+        : prev_id_(-1)
+        , id_(-1)
+        , reason_(INVALID)
+    {}
+
     enum Reason {INVALID, INIT, STOP, ERROR};
     int prev_id_;
     int id_;
@@ -252,7 +258,18 @@ MasterComponent::MasterComponent(const std::string &name)
     : TaskContext(name, PreOperational)
     , state_switch_history_length_(5)
     , scheme_time_(0)
+    , last_exec_time_(RTT::nsecs_to_Seconds(RTT::os::TimeService::Instance()->getNSecs()))
+    , last_exec_period_(0)
+    , last_update_time_(RTT::os::TimeService::Instance()->getNSecs())
+    , counter_(0)
+    , interval1_(0.0)
+    , interval2_(0.0)
+    , interval3_(0.0)
+    , interval4_(0.0)
+    , interval5_(0.0)
+    , read_buffer_timeout_(1.0)
     , use_sim_time_(false)
+    , time_last_s_(rtt_rosclock::rtt_now())
 {
     this->addOperation("getDiag", &MasterComponent::getDiag, this, RTT::ClientThread);
 
