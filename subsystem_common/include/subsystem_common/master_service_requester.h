@@ -118,7 +118,7 @@ class MasterServiceRequester : public RTT::ServiceRequester {
   RTT::OperationCaller<void()> iterationBegin;
   RTT::OperationCaller<void()> iterationEnd;
 
-  RTT::OperationCaller<bool(size_t, double)> bufferGroupRead;
+  RTT::OperationCaller<bool(size_t, double, bool)> bufferGroupRead;
 
   RTT::OperationCaller<const BufferGroup&(int) > getStateBufferGroup;
 };

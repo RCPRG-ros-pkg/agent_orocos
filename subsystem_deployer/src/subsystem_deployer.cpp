@@ -409,7 +409,11 @@ const std::vector<subsystem_common::OutputBufferInfo>& SubsystemDeployer::getUpp
 }
 
 const std::string& SubsystemDeployer::getSubsystemName() const {
-  return full_name_;
+  return subsystem_name_;
+}
+
+const std::string& SubsystemDeployer::getMasterPackageName() const {
+  return master_package_name_;
 }
 
 bool SubsystemDeployer::import(const std::string& name) {
@@ -694,7 +698,7 @@ bool SubsystemDeployer::createOutputBuffers(
   RTT::TaskContext* comp = dc_->getPeer("Y");
 
   if (!comp) {
-    std::string type = getSubsystemName() + "_types::OutputBuffers";
+    std::string type = getMasterPackageName() + "_types::OutputBuffers";
     if (!dc_->loadComponent("Y", type)) {
       Logger::log() << Logger::Error << "Unable to load component " << type
           << Logger::endl;
@@ -753,8 +757,7 @@ bool SubsystemDeployer::initializeSubsystem(
   cpu_num_ = cpu_num;
 
   master_package_name_ = master_package_name;
-  subname_ = subsystem_subname;
-  full_name_ = master_package_name_ + subname_;
+  subsystem_name_ = subsystem_subname;
 
   Logger::In in("SubsystemDeployer::init " + getSubsystemName());
 

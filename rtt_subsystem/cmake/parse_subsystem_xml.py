@@ -91,6 +91,12 @@ class SubsystemState:
             raise Exception('<state>', '<buffer_group> must have attribute \'first_timeout_sim\'')
         self.buffer_group_first_timeout_sim = float(buffer_group[0].getAttribute("first_timeout_sim"))
 
+        if not buffer_group[0].getAttribute("used_time"):
+            raise Exception('<state>', '<buffer_group> must have attribute \'used_time\'')
+        self.buffer_group_used_time = buffer_group[0].getAttribute("used_time")
+        if not self.buffer_group_used_time in ["sim", "real"]:
+            raise Exception('<state>', '<buffer_group> attribute \'used_time\' has wrong value "{}", but should be either "sim" or "real"'.format(self.buffer_group_used_time))
+
     def __init__(self, xml=None):
         if xml:
             self.parse(xml)

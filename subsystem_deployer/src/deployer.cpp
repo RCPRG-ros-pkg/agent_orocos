@@ -117,6 +117,10 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    if (subsystem_subname.empty()) {
+        subsystem_subname = master_package_name;
+        std::cerr << "Subsystem name is missing. Using name of the master package: \'" << subsystem_subname << "\'" << std::endl;
+    }
     ros::init(argc, argv, std::string("SubsystemDeployer_") + master_package_name + subsystem_subname);
 
     SubsystemDeployer depl(name);

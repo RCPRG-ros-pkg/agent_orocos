@@ -103,7 +103,7 @@ class MasterService: public RTT::Service {
   virtual void iterationBegin() = 0;
   virtual void iterationEnd() = 0;
 
-  virtual bool bufferGroupRead(size_t id, double timeout) = 0;
+  virtual bool bufferGroupRead(size_t id, double timeout, bool wait_for_sim_time) = 0;
 
   virtual const BufferGroup& getStateBufferGroup(int) const = 0;
 };

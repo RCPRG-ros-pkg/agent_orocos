@@ -840,7 +840,7 @@ void MasterComponent::updateHook() {
     }
 
     while (true) {
-        double timeout_s = master_service_->getStateBufferGroup(current_state_id_).min_period - (rtt_rosclock::rtt_now() - time_last_s_).toSec();  // calculate sleep time
+        double timeout_s = master_service_->getStateBufferGroup(current_state_id_).min_period - (rtt_rosclock::host_now() - time_last_s_).toSec();  // calculate sleep time
         if (timeout_s <= 0) {
             break;
         }
@@ -849,9 +849,10 @@ void MasterComponent::updateHook() {
         }
         usleep( static_cast<int >((timeout_s)*1000000.0) );
     }
-    time_last_s_ = rtt_rosclock::rtt_now();     // save time
+    time_last_s_ = rtt_rosclock::host_now();     // save time
 
-    if (master_service_->bufferGroupRead( master_service_->getStateBufferGroup(current_state_id_).id, read_buffer_timeout_ )) {
+    bool wait_for_sim_time = (use_sim_time_ && master_service_->getStateBufferGroup(current_state_id_).used_time_sim);
+    if (master_service_->bufferGroupRead( master_service_->getStateBufferGroup(current_state_id_).id, read_buffer_timeout_, wait_for_sim_time )) {
         if (use_sim_time_) {
             read_buffer_timeout_ = master_service_->getStateBufferGroup(current_state_id_).first_timeout_sim;
         }

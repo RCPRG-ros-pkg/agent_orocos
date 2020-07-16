@@ -38,6 +38,7 @@ public:
     double first_timeout;
     double first_timeout_sim;
     double next_timeout;
+    bool used_time_sim;
     size_t id;
 };
 

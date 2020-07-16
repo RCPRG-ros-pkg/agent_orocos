@@ -315,6 +315,10 @@ def generate_boost_serialization(package, port_def, output_cpp):
         s.write("        state_buffer_group_[" + str(state_id) + "].first_timeout = " + str(st.buffer_group_first_timeout) + ";\n")
         s.write("        state_buffer_group_[" + str(state_id) + "].next_timeout = " + str(st.buffer_group_next_timeout) + ";\n")
         s.write("        state_buffer_group_[" + str(state_id) + "].first_timeout_sim = " + str(st.buffer_group_first_timeout_sim) + ";\n")
+        if st.buffer_group_used_time == 'sim':
+            s.write("        state_buffer_group_[" + str(state_id) + "].used_time_sim = true;\n")
+        else:
+            s.write("        state_buffer_group_[" + str(state_id) + "].used_time_sim = false;\n")
         s.write("        state_buffer_group_[" + str(state_id) + "].id = " + str(sd.getBufferGroupId(st.buffer_group_name)) + ";\n")
         s.write("        states_.push_back(new " + package + "_State_" + st.name + "());\n")
         s.write("\n")
@@ -597,7 +601,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
 #
 # bufferGroupRead()
 #
-    s.write("    bool bufferGroupRead(size_t id, double timeout) {\n")
+    s.write("    bool bufferGroupRead(size_t id, double timeout, bool wait_for_sim_time) {\n")
     for buffer_group in sd.buffer_groups:
         s.write("        if (id == " + str(sd.getBufferGroupId(buffer_group.name)) + ") {\n")
         s.write("            void *pbuf = NULL;\n")
@@ -620,18 +624,29 @@ def generate_boost_serialization(package, port_def, output_cpp):
 
             s.write("            read_status = -1;\n")
             s.write("            if (timeout_s > 0) {\n")
-            s.write("                clock_gettime(CLOCK_REALTIME, &ts);\n")
-            s.write("                int timeout_sec = (int)timeout_s;\n")
-            s.write("                int timeout_nsec = (int)((timeout_s - (double)timeout_sec) * 1000000000.0);\n")
+            s.write("                ros::Time start = rtt_rosclock::host_now();\n")
+            s.write("                while (true) {\n")
+            s.write("                    clock_gettime(CLOCK_REALTIME, &ts);\n")
+            s.write("                    int timeout_sec = (int)timeout_s;\n")
+            s.write("                    int timeout_nsec = (int)((timeout_s - (double)timeout_sec) * 1000000000.0);\n")
 
-            s.write("                ts.tv_sec += timeout_sec;\n")
-            s.write("                ts.tv_nsec += timeout_nsec;\n")
-            s.write("                if (ts.tv_nsec >= 1000000000) {\n")
-            s.write("                    ts.tv_nsec -= 1000000000;\n")
-            s.write("                    ++ts.tv_sec;\n")
+            s.write("                    ts.tv_sec += timeout_sec;\n")
+            s.write("                    ts.tv_nsec += timeout_nsec;\n")
+            s.write("                    if (ts.tv_nsec >= 1000000000) {\n")
+            s.write("                        ts.tv_nsec -= 1000000000;\n")
+            s.write("                        ++ts.tv_sec;\n")
+            s.write("                    }\n")
+
+            s.write("                    read_status = shm_reader_buffer_timedwait(re_" + buf_name + "_, &ts, &pbuf);\n")
+            s.write("                    double host_elapsed = (rtt_rosclock::host_now()-start).toSec();\n")
+            s.write("                    if (read_status != SHM_TIMEOUT || host_elapsed > timeout_s) {\n")
+            s.write("                        break;\n")
+            s.write("                    }\n")
+            s.write("                    if (!wait_for_sim_time) {\n")
+            s.write("                        break;\n")
+            s.write("                    }\n")
             s.write("                }\n")
 
-            s.write("                read_status = shm_reader_buffer_timedwait(re_" + buf_name + "_, &ts, &pbuf);\n")
             s.write("            }\n")
             s.write("            else {\n")
             s.write("                read_status = shm_reader_buffer_get(re_" + buf_name + "_, &pbuf);\n")

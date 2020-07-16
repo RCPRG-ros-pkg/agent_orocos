@@ -64,6 +64,7 @@ public:
     const std::string& getChannelName(const std::string& alias) const;
 
     const std::string& getSubsystemName() const;
+    const std::string& getMasterPackageName() const;
 
     std::vector<RTT::TaskContext* > getAllComponents() const;
 
@@ -107,9 +108,7 @@ private:
 
     std::string name_;
     std::string master_package_name_;
-    std::string subname_;
-    std::string full_name_;
-
+    std::string subsystem_name_;
 
     boost::shared_ptr<OCL::DeploymentComponent > dc_;
     RTT::OperationCaller<bool(const std::string&)> ros_import_;
