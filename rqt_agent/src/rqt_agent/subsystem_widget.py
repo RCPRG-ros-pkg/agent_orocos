@@ -58,45 +58,8 @@ class SubsystemWidget(QWidget):
     TODO: description.
     """
 
-# ___________________________________________________________
-# |[ipc_buffers]                                             |
-# |                     subsystem_name                       |
-# |  master_component                                        |
-# |  subsystem_state       [components]                      |
-# |                        [components]                      |
-# |                        [components]                      |
-# |                        [components]                      |
-# |                        [components]                      |
-# |                                                          |
-# |                                                          |
-# |                                                          |
-# |                                                          |
-# |[ipc_buffers]                                             |
-# |__________________________________________________________|
-
     def layout_widgets(self, layout):
        return (layout.itemAt(i) for i in range(layout.count()))
-
-    def resetBuffersLayout(self):
-        self.buffer_groups = {}
-        self.lower_subsystems = []
-
-        print self.subsystem_name, ".resetBuffersLayout()"
-
-        for buf in self.all_buffers:
-            self.all_buffers[buf].hide()
-
-        while True:
-            w = self.lower_buffers_layout.takeAt(0)
-            if w == None:
-                break;
-            del w
-
-        while True:
-            w = self.upper_buffers_layout.takeAt(0)
-            if w == None:
-                break;
-            del w
 
     @Slot()
     def on_click_showBehaviorGraph(self):
@@ -184,7 +147,6 @@ class SubsystemWidget(QWidget):
         self.prev_period_histogram = None
 
         self.all_buffers = {}
-        self.resetBuffersLayout()
 
         self.components = {}
 

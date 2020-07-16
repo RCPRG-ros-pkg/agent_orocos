@@ -25,10 +25,13 @@
 
 from __future__ import division
 import os
+import subprocess
 
 from python_qt_binding import loadUi
-from python_qt_binding.QtCore import Qt, QTimer, Signal, Slot
-from python_qt_binding.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QScrollArea
+from python_qt_binding.QtCore import Qt, QTimer, Signal, Slot, QRectF
+from python_qt_binding.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,\
+    QScrollArea, QGraphicsScene
+from python_qt_binding.QtGui import QPixmap
 import roslib
 import rospkg
 import rospy
@@ -63,28 +66,20 @@ class SystemWidget(QWidget):
 
         self.all_subsystems = {}
         self._widgets = {}
+        self._added_widgets = {}
         self.prev_subsystems = []
-        self.levels_layouts = []
+
+        self.structure_changed = False
 
         self.structure_root = None
         self.structure_graph = None
 
-        self.structure_changed = False
+        #self.mainWidget = QWidget()
+        #self.scrollArea = QScrollArea()
+        #self.scrollArea.setWidgetResizable( True );
+        #self.scrollArea.setWidget(self.mainWidget)
 
-        self.scrollArea = QScrollArea()
-        self.scrollArea.setWidgetResizable( True );
-        self.horizontalLayout.addWidget(self.scrollArea)
-        self.mainWidget = QWidget()
-        self.scrollArea.setWidget(self.mainWidget)
-        self.verticalLayout = QVBoxLayout()
-        self.mainWidget.setLayout(self.verticalLayout)
-
-#        self._tree_items = {}
-#        self._column_index = {}
-#        for column_name in self._column_names:
-#            self._column_index[column_name] = len(self._column_index)
-
-        # self.refresh_topics()
+        self.graphicsView.setScene(QGraphicsScene(0,0,10,10))
 
         # init and start update timer
         self._timer_refresh_topics = QTimer(self)
@@ -116,81 +111,6 @@ class SystemWidget(QWidget):
         """
         self._timer_refresh_topics.start(100)
 
-    def generateStructure(self):
-        names = []
-        for w1_name in self._widgets:
-            names.append(w1_name)
-            self._widgets[w1_name].resetBuffersLayout()
-
-        for w1_name in self._widgets:
-            w1 = self._widgets[w1_name]
-            if not w1.isInitialized():
-                continue
-            for w2_name in self._widgets:
-                w2 = self._widgets[w2_name]
-                if not w2.isInitialized():
-                    continue
-                common_buffers = w1.getCommonBuffers(w2)
-                if common_buffers != None:
-                    w1.groupBuffers(common_buffers, w2.subsystem_name)
-                    w2.groupBuffers(common_buffers, w1.subsystem_name)
-
-        parents_dict = {}
-        for w1_name in self._widgets:
-            w1 = self._widgets[w1_name]
-            if not w1.isInitialized():
-                continue
-            for w2_name in self._widgets:
-                w2 = self._widgets[w2_name]
-                if not w2.isInitialized():
-                    continue
-                rel_pose = w1.getLowerSubsystemPosition(w2.subsystem_name)
-                if rel_pose != -1:
-                    parents_dict[w2_name] = w1_name
-
-#        print parents_dict
-
-        # get top-most subsystem (root)
-        root = None
-        if parents_dict:
-            root = list(parents_dict.keys())[0]
-            while root in parents_dict:
-                root = parents_dict[root]
-
-        levels = []
-        if root == None:
-            # there are no levels
-            one_level = []
-            for w_name in self._widgets:
-                one_level.append(w_name)
-            if len(one_level) > 0:
-                levels.append(one_level)
-        else:
-            levels.append([root])
-            while True:
-                # expand all subsystems in the lowest level
-                current_lowest = levels[-1]
-                next_lower_level = []
-                for s in current_lowest:
-                    lower_list = self._widgets[s].getLowerSubsystems()
-                    next_lower_level = next_lower_level + lower_list
-                if len(next_lower_level) == 0:
-                    break
-                else:
-                    levels.append(next_lower_level)
-
-            # TODO: manage disjoint trees
-            added_subsystems = []
-            for l in levels:
-                for s in l:
-                    added_subsystems.append(s)
-            for w_name in self._widgets:
-                if not w_name in added_subsystems:
-                    print "WARNING: subsystem %s is not in the main tree. This is not implemented."%(w_name)
-
-        print "levels:", levels
-        return levels
-
     def layout_widgets(self, layout):
        return (layout.itemAt(i) for i in range(layout.count()))
 
@@ -212,7 +132,6 @@ class SystemWidget(QWidget):
 
         for topic_name, topic_type in topic_list:
             name_split = topic_name.split('/')
-#            print name_split
 
             if (len(name_split) == 3) and (name_split[0] == '') and (name_split[2] == 'diag') and (topic_type == "diagnostic_msgs/DiagnosticArray"):
                 subsystem_name = name_split[1]
@@ -242,8 +161,6 @@ class SystemWidget(QWidget):
         # switch to new topic dict
         self._subsystems = new_subsystems
 
-#        print self._subsystems.keys()
-
         #
         # update each subsystem
         #
@@ -260,66 +177,47 @@ class SystemWidget(QWidget):
 
                 if not subsystem_name in self._widgets:
                     new_widgets[subsystem_name] = self.all_subsystems[subsystem_name]
-#                    self.verticalLayout.addWidget(new_widgets[subsystem_name])
                 else:
                     new_widgets[subsystem_name] = self._widgets[subsystem_name]
-#                    del self._widgets[subsystem_name]
-
-#                for value in msg.status[1].values:
-#                    if value.key == 'master_component':
-#                        new_widgets[subsystem_name].setStateName(value.value, '')
-#                        break
-
-        # remove unused subsystems
-#        while True:
-#            repeat = False
-#            for s in self._widgets:
-#                if not s in new_widgets:
-#                    del self._widgets[s]
-#                    repeat = True
-#                    break
-#            if not repeat:
-#                break
 
         self._widgets = new_widgets
 
-#        print self._widgets.keys()
-
         structure_changed = self.checkStructureChange()
-
         if structure_changed:
             self.structure_changed = True
 
         if self.structure_changed:
             allInitialized = True
-            for subsystem_name in self._widgets:
-                if not self._widgets[subsystem_name].isInitialized():
+            for subsystem_name, wg in new_widgets.iteritems():
+                if not wg.isInitialized():
                     allInitialized = False
                     break
             if allInitialized:
-                # remove all widgets from layouts
-                # and remove all layouts
-                for i in reversed(range(len(self.levels_layouts))):
-                    layout = self.levels_layouts[i]
-                    for i in reversed(range(layout.count())):
-                        # The new widget is deleted when its parent is deleted.
-                        layout.itemAt(i).widget().setParent(None)
-                    self.verticalLayout.removeItem(layout)
-                    del layout
+                #print dir(self.verticalLayout)
+                self.generateSystemStructureDot()
 
-                self.levels_layouts = []
+                # Remove all widgets from the layout
+                for subsystem_name, wg in self._added_widgets.iteritems():
+                    wg.setParent(None)
 
-                levels = self.generateStructure()
-                for l in levels:
-                    hbox = QHBoxLayout()
-                    for w in l:
-                        hbox.addWidget(self._widgets[w])
-                        self._widgets[w].show()
-                    self.levels_layouts.append(hbox)
-                    self.verticalLayout.addLayout(hbox)
-#                for 
-                # TODO
+                for it in range(100):
+                    if self.verticalLayout.isEmpty():
+                        break
+                    self.verticalLayout.removeWidget()
+                    self.verticalLayout.takeAt(0)
+                    print 'removed widget', it
+
+                self._added_widgets = {}
+                for subsystem_name, wg in self._widgets.iteritems():
+                    self._added_widgets[subsystem_name] = wg
+
+                for wg_name, wg in self._widgets.iteritems():
+                    self.verticalLayout.addWidget(wg)
+                    wg.show()
+                    print 'added widget', wg_name
+
                 self.structure_changed = False
+
         while True:
             repeat = False
             for s in self.all_subsystems:
@@ -332,6 +230,51 @@ class SystemWidget(QWidget):
 
         for subsystem_name in self._widgets:
             self._widgets[subsystem_name].update_subsystem(self._subsystems[subsystem_name].last_message)
+
+    def generateSystemStructureDot(self):
+        dot = 'digraph system {\n'
+        all_buf_names = set()
+        for subsystem_name, wg in self._widgets.iteritems():
+            if not wg.isInitialized():
+                dot += '  {} [style="filled,rounded" fillcolor=orange shape=box];\n'.format(subsystem_name)
+                continue
+
+            dot += '  {} [style=rounded shape=box];\n'.format(subsystem_name)
+
+            for buf_name in wg.subsystem_info.upper_inputs:
+                dot += '  {} -> {};\n'.format(buf_name, subsystem_name)
+                all_buf_names.add(buf_name)
+
+            for buf_name in wg.subsystem_info.lower_inputs:
+                dot += '  {} -> {} [arrowhead=none arrowtail=normal dir=back];\n'.format(subsystem_name, buf_name)
+                all_buf_names.add(buf_name)
+
+            for buf_name in wg.subsystem_info.upper_outputs:
+                dot += '  {} -> {} [arrowhead=none arrowtail=normal dir=back];\n'.format(buf_name, subsystem_name)
+                all_buf_names.add(buf_name)
+
+            for buf_name in wg.subsystem_info.lower_outputs:
+                dot += '  {} -> {};\n'.format(subsystem_name, buf_name)
+                all_buf_names.add(buf_name)
+
+        for buf_name in all_buf_names:
+            dot += '  {} [shape=box];\n'.format(buf_name)
+        dot += '}\n'
+        #with open('system.dot', 'wt') as f:
+        #    f.write(dot)
+
+        in_read, in_write = os.pipe()
+        os.write(in_write, dot)
+        os.close(in_write)
+        subprocess.call(['dot', '-Tpng', '-osystem.png'], stdin=in_read)
+        os.close(in_read)
+
+        # Clear the diagram
+        self.graphicsView.scene().clear()
+        self.graphicsView.scene().update()
+        pixmap = QPixmap('system.png')
+        self.graphicsView.scene().addPixmap(pixmap)
+        self.graphicsView.scene().setSceneRect(QRectF(pixmap.rect()))
 
     def shutdown_plugin(self):
         for topic in self._topics.values():
