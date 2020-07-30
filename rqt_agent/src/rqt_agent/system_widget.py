@@ -26,6 +26,7 @@
 from __future__ import division
 import os
 import subprocess
+import tempfile
 
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Qt, QTimer, Signal, Slot, QRectF
@@ -260,21 +261,22 @@ class SystemWidget(QWidget):
         for buf_name in all_buf_names:
             dot += '  {} [shape=box];\n'.format(buf_name)
         dot += '}\n'
-        #with open('system.dot', 'wt') as f:
-        #    f.write(dot)
 
+        tmpdirname = tempfile.mkdtemp()
         in_read, in_write = os.pipe()
         os.write(in_write, dot)
         os.close(in_write)
-        subprocess.call(['dot', '-Tpng', '-osystem.png'], stdin=in_read)
+        subprocess.call(['dot', '-Tpng', '-o{}/system.png'.format(tmpdirname)], stdin=in_read)
         os.close(in_read)
 
         # Clear the diagram
         self.graphicsView.scene().clear()
         self.graphicsView.scene().update()
-        pixmap = QPixmap('system.png')
+        pixmap = QPixmap('{}/system.png'.format(tmpdirname))
         self.graphicsView.scene().addPixmap(pixmap)
         self.graphicsView.scene().setSceneRect(QRectF(pixmap.rect()))
+        os.remove('{}/system.png'.format(tmpdirname))
+        os.rmdir(tmpdirname) 
 
     def shutdown_plugin(self):
         for topic in self._topics.values():
