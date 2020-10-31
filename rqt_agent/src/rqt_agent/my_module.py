@@ -32,12 +32,12 @@ from python_qt_binding import loadUi
 from python_qt_binding.QtWidgets import QWidget
 from system_widget import *
 
-class MyPlugin(Plugin):
+class FabricSystemViewPlugin(Plugin):
 
     def __init__(self, context):
-        super(MyPlugin, self).__init__(context)
+        super(FabricSystemViewPlugin, self).__init__(context)
         # Give QObjects reasonable names
-        self.setObjectName('MyPlugin')
+        self.setObjectName('FabricSystemView')
         rp = rospkg.RosPack()
 
         # Process standalone plugin command-line arguments

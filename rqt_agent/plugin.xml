@@ -1,18 +1,18 @@
 <library path="src">
-  <class name="Agent Plugin" type="rqt_agent.my_module.MyPlugin" base_class_type="rqt_gui_py::Plugin">
+  <class name="FabricSystemView" type="rqt_agent.my_module.FabricSystemViewPlugin" base_class_type="rqt_gui_py::Plugin">
     <description>
-      TODO
+      Plugin that visualizes structure of agent-based robotic system.
     </description>
     <qtgui>
-      <!-- optional grouping...
       <group>
-        <label>Group</label>
+        <label>FABRIC</label>
       </group>
+      <!-- optional grouping...
       <group>
         <label>Subgroup</label>
       </group>
       -->
-      <label>Plugin that visualizes structure of agent-based robotic system.</label>
+      <label>System View</label>
       <icon type="theme">system-help</icon>
       <statustip>TODO.</statustip>
     </qtgui>
