@@ -45,6 +45,11 @@
 #include "subsystem_common/master_service_requester.h"
 #include "subsystem_common/master_service.h"
 
+#include "fabric_logger/fabric_logger.h"
+
+using fabric_logger::FabricLoggerInterfaceRtPtr;
+using fabric_logger::FabricLogger;
+
 using namespace RTT;
 
 class DiagStateSwitch {
@@ -247,6 +252,8 @@ private:
 
     std::vector<unsigned int > period_histogram_;
     std::vector<float > period_histogram_ranges_;
+
+    FabricLoggerInterfaceRtPtr m_fabric_logger;
 };
 
 void MasterComponent::setThreadName(const std::string& thread_name) {
@@ -270,6 +277,7 @@ MasterComponent::MasterComponent(const std::string &name)
     , read_buffer_timeout_(0.0)
     , use_sim_time_(false)
     , time_last_s_(0.0)
+    , m_fabric_logger( FabricLogger::createNewInterfaceRt( "master_component", 10000) )
 {
     this->addOperation("getDiag", &MasterComponent::getDiag, this, RTT::ClientThread);
 
@@ -738,6 +746,7 @@ void MasterComponent::updateHook() {
     const std::vector<int >& behavior_indices = states[current_state_id_]->getBehaviorIndices();
     for (int i = 0; i < behavior_indices.size(); ++i) {
         if (behaviors[behavior_indices[i]]->checkErrorCondition(predicate_list_)) {
+            m_fabric_logger << "error condition" << FabricLogger::End();
             err_cond = true;
             break;
         }
@@ -760,6 +769,9 @@ void MasterComponent::updateHook() {
     if (stop_cond || err_cond) {
         current_state_id_ = states[current_state_id_]->calculateNextState(predicate_list_);
         if (current_state_id_ < 0) {
+            m_fabric_logger << "ERROR: could not switch to new state: " << current_state_id_
+                                                                            << FabricLogger::End();
+
             Logger::log() << Logger::Error << "could not switch to new state: " << current_state_id_ << Logger::endl;
             diag_ss_rt_.addStateSwitch(current_state_id_, now, (err_cond?DiagStateSwitch::ERROR:DiagStateSwitch::STOP), predicate_list_);
             diag_bs_sync_.Set(diag_ss_rt_);
@@ -787,6 +799,7 @@ void MasterComponent::updateHook() {
         }
 
         if (!switchToConfiguration_(current_state_id_)) {
+            m_fabric_logger << "ERROR: could not switch graph configuration" << FabricLogger::End();
             Logger::log() << Logger::Error << "could not switch graph configuration" << Logger::endl;
             error();
             return;
@@ -795,6 +808,7 @@ void MasterComponent::updateHook() {
     ros::Time time4 = rtt_rosclock::rtt_wall_now();
 
     if (scheme_->getTaskState() != RTT::TaskContext::Running) {
+        m_fabric_logger << "ERROR: Component is not in the running state: " << scheme_->getName() << FabricLogger::End();
         Logger::log() << Logger::Error << "Component is not in the running state: " << scheme_->getName() << Logger::endl;
         error();
         return;

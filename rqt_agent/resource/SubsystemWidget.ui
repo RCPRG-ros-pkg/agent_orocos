@@ -129,7 +129,7 @@
        </layout>
       </item>
       <item>
-       <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0,0,0">
+       <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0,0,0,0">
         <item row="0" column="4">
          <widget class="QPushButton" name="showComponentsList">
           <property name="text">
@@ -162,6 +162,13 @@
          <widget class="QPushButton" name="showPeriodHistogram">
           <property name="text">
            <string>Period histogram</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5">
+         <widget class="QPushButton" name="showLogs">
+          <property name="text">
+           <string>Logs</string>
           </property>
          </widget>
         </item>

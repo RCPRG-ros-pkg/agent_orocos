@@ -998,6 +998,22 @@ bool SubsystemDeployer::initializeSubsystem(
     return false;
   }
 
+  RTT::base::PortInterface* log_port_out_ = diag_component_->ports()->getPort(
+      "log_OUTPORT");
+  if (log_port_out_) {
+    if (!log_port_out_->createStream(
+        rtt_roscomm::topic(std::string("/") + getSubsystemName() + "/log"))) {
+      Logger::log() << Logger::Error << "could not create ROS stream for port \'"
+          << diag_component_->getName() << "." << log_port_out_->getName()
+          << "\'" << Logger::endl;
+      return false;
+    }
+  } else {
+    Logger::log() << Logger::Error << "component \'" << diag_component_->getName()
+        << "\' does not have port \'log_OUTPORT\'" << Logger::endl;
+    return false;
+  }
+
   Logger::log() << Logger::Info << "OK" << Logger::endl;
 
   Logger::log() << Logger::Info << "Master Component ports:" << Logger::endl;

@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   rtt_rosclock
   cmake_modules
   diagnostic_msgs
+  fabric_logger
   )
 
 #find_package(OROCOS-RTT REQUIRED COMPONENTS rtt-scripting rtt-transport-corba)
@@ -60,4 +61,3 @@ orocos_install_headers(
 )
 
 catkin_python_setup()
-

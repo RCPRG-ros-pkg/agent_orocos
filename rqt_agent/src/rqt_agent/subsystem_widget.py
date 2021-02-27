@@ -49,7 +49,9 @@ import subsystem_components
 import subsystem_state_history
 import dot_graph
 import latex_equations
+import subsystem_logs
 
+from diagnostic_msgs.msg import DiagnosticArray
 
 class SubsystemWidget(QWidget):
     """
@@ -112,6 +114,10 @@ class SubsystemWidget(QWidget):
 
             self.prev_period_histogram = np.copy(self.period_histogram)
 
+    @Slot()
+    def on_click_showLogs(self):
+        self.dialogLogs.show()
+
     def __init__(self, plugin=None, name=None):
         """
         @type selected_topics: list of tuples.
@@ -165,6 +171,27 @@ class SubsystemWidget(QWidget):
         self.showStateMachineGraph.clicked.connect(self.on_click_showStateMachineGraph)
 
         self.showPeriodHistogram.clicked.connect(self.on_click_showPeriodHistogram)
+
+        self.dialogLogs = subsystem_logs.LogsDialog(self.subsystem_name, self)
+        self.showLogs.clicked.connect(self.on_click_showLogs)
+
+        # Connect to logs ROS topic
+        if self.subsystem_name != None:
+            self._subscriber = rospy.Subscriber('/{}/log'.format( self.subsystem_name ),
+                                                        DiagnosticArray, self.__logMsgCallback)
+
+    def __logMsgCallback(self, msg):
+        #logger_names = []
+        logs = {}
+
+        for status in msg.status:
+            logger_name = status.name
+            logs[logger_name] = []
+            for value in status.values:
+                log_str = value.value
+                logs[logger_name].append( log_str )
+
+        self.dialogLogs.update(logs)
 
     def isInitialized(self):
         return self.initialized

@@ -41,7 +41,10 @@
 #include <diagnostic_msgs/DiagnosticArray.h>
 #include <std_msgs/String.h>
 
+#include "fabric_logger/fabric_logger.h"
+
 using namespace RTT;
+using fabric_logger::FabricLogger;
 
 class DiagnosticComponent: public RTT::TaskContext {
 public:
@@ -65,12 +68,14 @@ private:
 
     diagnostic_msgs::DiagnosticArray diag_out_;
     RTT::OutputPort<diagnostic_msgs::DiagnosticArray > port_diag_out_;
+    diagnostic_msgs::DiagnosticArray log_out_;
+    RTT::OutputPort<diagnostic_msgs::DiagnosticArray > port_log_out_;
     RTT::InputPort<std_msgs::String > port_str_in_;
 
     std::vector<TaskContext* > peers_;
     std::vector<Diag > diag_vec_;
 
-//    std::vector<double >
+    std::vector<std::string > m_log_interface_names;
 };
 
 static std::string getTaskStatusChar(RTT::TaskContext* t)
@@ -91,9 +96,11 @@ static std::string getTaskStatusChar(RTT::TaskContext* t)
 DiagnosticComponent::DiagnosticComponent(const std::string &name) :
     TaskContext(name, PreOperational),
     port_diag_out_("diag_OUTPORT", true),
+    port_log_out_("log_OUTPORT", true),
     port_str_in_("str_INPORT")
 {
     this->ports()->addPort(port_diag_out_);
+    this->ports()->addPort(port_log_out_);
     this->ports()->addPort(port_str_in_);
 }
 
@@ -186,6 +193,29 @@ void DiagnosticComponent::updateHook() {
     if (port_str_in_.read(str) == RTT::NewData) {
         std::cout << "port_str_in_.read(str): " << str << std::endl;
     }
+
+
+
+    // Logs managed with fabric_logger
+    m_log_interface_names = FabricLogger::getInterfaceNames();
+
+    log_out_.status.resize(m_log_interface_names.size());
+
+    for (int i = 0; i < m_log_interface_names.size(); ++i) {
+        std::vector<std::string> logs = FabricLogger::getAllLogs( m_log_interface_names[i] );
+
+        log_out_.status[i].level = diagnostic_msgs::DiagnosticStatus::OK;
+        log_out_.status[i].name = m_log_interface_names[i];
+        log_out_.status[i].hardware_id = "0";
+        log_out_.status[i].message = "";
+        log_out_.status[i].values.resize(logs.size());
+
+        for (int j = 0; j < logs.size(); ++j) {
+            log_out_.status[i].values[j].key = "";
+            log_out_.status[i].values[j].value = logs[j];
+        }
+    }
+    port_log_out_.write(log_out_);
 }
 
 ORO_LIST_COMPONENT_TYPE(DiagnosticComponent)
