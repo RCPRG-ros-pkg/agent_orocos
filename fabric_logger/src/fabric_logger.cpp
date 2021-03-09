@@ -342,7 +342,7 @@ std::vector<std::string> FabricLogger::FabricLogger::LoggerInterfaceData::getAll
                 uint32_t sec = (*((uint32_t*)item_data_ptr));
                 uint32_t nsec = (*((uint32_t*)&item_data_ptr[sizeof(uint32_t)]));
 
-                ss << "Time(" << sec << "," << nsec << ")";
+                ss << "Time(" << sec << ";" << nsec << ")";
                 result.push_back(ss.str());
                 ss = std::stringstream();
             }

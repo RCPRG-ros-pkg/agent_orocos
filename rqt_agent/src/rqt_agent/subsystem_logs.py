@@ -47,34 +47,6 @@ from rqt_topic.topic_info import TopicInfo
 
 from subsystem_msgs.srv import *
 
-def getComponentBrush(state):
-    b = QBrush(QColor(0,0,255)) # unconfigured/preoperational
-    if state == 'S':      # stopped
-        b = QBrush(QColor(255,255,255))
-    elif state == 'R':    # running
-        b = QBrush(QColor(0,255,0))
-    elif state == 'E':    # error
-        b = QBrush(QColor(255,0,0))
-    elif state == 'F':    # fatal error
-        b = QBrush(QColor(255,127,127))
-    elif state == 'X':    # exception
-        b = QBrush(QColor(0,255,255))
-    return b
-
-def getComponentTooltip(state):
-    tooltip = 'unconfigured/preoperational'
-    if state == 'S':      # stopped
-        tooltip = 'stopped'
-    elif state == 'R':    # running
-        tooltip = 'running'
-    elif state == 'E':    # error
-        tooltip = 'error'
-    elif state == 'F':    # fatal error
-        tooltip = 'fatal error'
-    elif state == 'X':    # exception
-        tooltip = 'exception'
-    return tooltip
-
 class LoggerSelector:
     def __init__(self, list_view):
         self.__list_view = list_view
@@ -188,7 +160,7 @@ class LogsDialog(QDialog):
         # else
         log_str = log_item[0:pos]
         time_str = log_item[pos+5:-1]
-        fields = time_str.split(',')
+        fields = time_str.split(';')
         if len(fields) < 2:
             return log_item, None
 
@@ -212,20 +184,3 @@ class LogsDialog(QDialog):
             #if logger_name in active_loggers:
 
         self.logs_vis.updateView()
-
-    '''
-    def updateState(self, components_state, components_diag_msgs):
-        # iterate through components and add them to QListWidget
-        for comp in components_state:
-            if not comp in self.components:
-                item = QListWidgetItem()
-                item.setText(comp)
-                self.components[comp] = item
-                self.listWidget.addItem(item)
-            self.components[comp].setBackground( getComponentBrush(components_state[comp]) )
-            self.components[comp].setToolTip( getComponentTooltip(components_state[comp]) )
-
-        for comp in components_diag_msgs:
-            if comp in self.components:
-                self.components[comp].setText(comp + ' (' + components_diag_msgs[comp] + ')')
-    '''
