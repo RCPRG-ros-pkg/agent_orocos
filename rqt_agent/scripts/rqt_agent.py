@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+## Runs FABRIC introspection tool.
+# @file rqt_agent.py
+
 import sys
 
 from rqt_agent.my_module import FabricSystemViewPlugin
