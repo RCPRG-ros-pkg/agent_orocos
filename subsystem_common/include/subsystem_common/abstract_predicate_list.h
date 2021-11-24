@@ -38,6 +38,10 @@ public:
     bool CURRENT_BEHAVIOR_OK;
 
     virtual PredicateList& operator=(const PredicateList& arg) = 0;
+
+    virtual int getPredicatesCount() const = 0;
+    virtual bool getPredicateValue(int idx) const = 0;
+    virtual const std::string& getPredicateName(int idx) const = 0;
 };
 
 typedef boost::shared_ptr<PredicateList > PredicateListPtr;

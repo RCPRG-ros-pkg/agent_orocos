@@ -73,7 +73,12 @@ def generate_boost_serialization(package, port_def, output_cpp):
         s.write("  bool " + pred + ";\n")
 
     s.write("\n  virtual subsystem_common::PredicateList& operator=(const subsystem_common::PredicateList& arg);\n")
-
+    s.write("  virtual int getPredicatesCount() const;\n");
+    s.write("  virtual bool getPredicateValue(int idx) const;\n");
+    s.write("  virtual const std::string& getPredicateName(int idx) const;\n");
+    s.write("protected:\n")
+    for pred in sd.predicates:
+        s.write("  static const std::string name_{}_;\n".format(pred))
     s.write("};\n\n")
 
     s.write("typedef boost::shared_ptr<PredicateList > PredicateListPtr;\n\n")

@@ -201,6 +201,8 @@ private:
     void calculateConflictingComponents();
     bool isGraphOk() const;
 
+    void logStateSwitch(int new_state_id, subsystem_common::PredicateListConstPtr pred);
+
     int current_state_id_;
     std::map<std::string, int > state_graphs_;
 
@@ -249,12 +251,22 @@ private:
     double read_buffer_timeout_;
     bool use_sim_time_;
     ros::Time time_last_s_;
+    ros::Time time_last_state_pub_;
 
     std::vector<unsigned int > period_histogram_;
     std::vector<float > period_histogram_ranges_;
 
     FabricLoggerInterfaceRtPtr m_fabric_logger;
 };
+
+void MasterComponent::logStateSwitch(int new_state_id, subsystem_common::PredicateListConstPtr pred) {
+    m_fabric_logger << "s/sw "
+                    << master_service_->getStates()[new_state_id]->getName() << " ";
+    for (int i = 0; i < pred->getPredicatesCount(); ++i) {
+        m_fabric_logger << pred->getPredicateValue(i) << " ";
+    }
+    m_fabric_logger << FabricLogger::End();
+}
 
 void MasterComponent::setThreadName(const std::string& thread_name) {
     thread_name_ = thread_name;
@@ -277,7 +289,7 @@ MasterComponent::MasterComponent(const std::string &name)
     , read_buffer_timeout_(0.0)
     , use_sim_time_(false)
     , time_last_s_(0.0)
-    , m_fabric_logger( FabricLogger::createNewInterfaceRt( "master_component", 10000) )
+    , m_fabric_logger( FabricLogger::createNewInterfaceRt( "master_component", 100000) )
 {
     this->addOperation("getDiag", &MasterComponent::getDiag, this, RTT::ClientThread);
 
@@ -629,6 +641,7 @@ bool MasterComponent::configureHook() {
 
 bool MasterComponent::startHook() {
     first_step_ = true;
+    time_last_state_pub_ = rtt_rosclock::rtt_wall_now();
     return true;
 }
 
@@ -781,6 +794,8 @@ void MasterComponent::updateHook() {
 
         diag_ss_rt_.addStateSwitch(current_state_id_, now, (err_cond?DiagStateSwitch::ERROR:DiagStateSwitch::STOP), predicate_list_);
         diag_bs_sync_.Set(diag_ss_rt_);
+
+        logStateSwitch(current_state_id_, predicate_list_);
 
         state_switch = true;
     }

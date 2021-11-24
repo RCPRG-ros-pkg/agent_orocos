@@ -63,7 +63,8 @@ const ros::Time& FabricLogger::End::getTimestamp() const {
 FabricLogger::FabricLogger()
 {}
 
-FabricLoggerInterfaceRtPtr FabricLogger::createNewInterfaceRt(const std::string& name, int buffer_size) {
+FabricLoggerInterfaceRtPtr FabricLogger::createNewInterfaceRt(const std::string& name,
+                                                                                int buffer_size) {
     std::lock_guard<std::mutex> guard(m_mutex);
 
     // Singleton
@@ -99,7 +100,8 @@ FabricLoggerInterfaceRtPtr FabricLogger::getInterfaceRt(const std::string& name)
 
     for (int ii = 0; ii < m_instance->m_interfaces.size(); ++ii) {
         if (m_instance->m_interfaces[ii]->getName() == name) {
-            return FabricLoggerInterfaceRtPtr( new FabricLoggerInterfaceRt( m_instance->m_interfaces[ii] ) );
+            return FabricLoggerInterfaceRtPtr( new FabricLoggerInterfaceRt(
+                                                                m_instance->m_interfaces[ii] ) );
         }
     }
     return FabricLoggerInterfaceRtPtr();
@@ -201,7 +203,8 @@ void CircularBuffer::addItem(unsigned char item_type, unsigned char* buf, int si
 }
 
 //bool CircularBuffer::popItem(unsigned char* buf, int max_size) {
-bool CircularBuffer::popItem(int& item_type, int& item_size, unsigned char* item_data, int max_size) {
+bool CircularBuffer::popItem(int& item_type, int& item_size, unsigned char* item_data,
+                                                                                    int max_size) {
     // Get current read pos - it may change at any time
     int write_pos = m_buffer_write_pos.load( std::memory_order_seq_cst );
     int read_pos = m_buffer_read_pos.load( std::memory_order_seq_cst );
@@ -440,7 +443,8 @@ FabricLoggerInterfaceRtPtr& operator << (FabricLoggerInterfaceRtPtr& log, const 
     return log;
 }
 
-FabricLoggerInterfaceRtPtr& operator << (FabricLoggerInterfaceRtPtr& log, const FabricLogger::End& end) {
+FabricLoggerInterfaceRtPtr& operator << (FabricLoggerInterfaceRtPtr& log,
+                                                                    const FabricLogger::End& end) {
     log->addItem(end);
     return log;
 }
