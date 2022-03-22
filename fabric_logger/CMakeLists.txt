@@ -43,6 +43,10 @@ target_link_libraries(fabric_logger ${catkin_LIBRARIES})
 add_executable( fabric_logger_test src/fabric_logger_test.cpp )
 target_link_libraries( fabric_logger_test fabric_logger pthread ${catkin_LIBRARIES})
 
+install(PROGRAMS
+  scripts/log_parser.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ### Orocos Package Exports and Install Targets ###
 install(TARGETS ${PROJECT_NAME}

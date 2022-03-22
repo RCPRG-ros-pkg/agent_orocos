@@ -105,6 +105,128 @@ def eprint(s):
     sys.stderr.write(s + '\n')
     sys.stderr.flush()
 
+def getShmCodeInclude(shm_version):
+    if shm_version == 1:
+        result = "#include <shm_comm/shm_channel.h>\n"
+    elif shm_version == 2:
+        result = "#include <shm_comm/shm2_channel.h>\n"
+    else:
+        raise Exception('Wrong version of shm: "{}"'.format(shm_version))
+    return result
+
+def getShmCodeReaderConfigure(indent, shm_version, buf):
+    buf_name = buf.alias
+    if shm_version == 1:
+        result = "        Logger::log() << Logger::Info << \"trying to connect to channel\" << Logger::endl;\n"
+        result += "        result = shm_connect_reader(channel_name_" + buf_name + "_.c_str(), &re_" + buf_name + "_);\n"
+        result += "        if (result == SHM_INVAL) {\n"
+        result += "            Logger::log() << Logger::Error << \"shm_connect_reader('" + buf_name + "'): invalid parameters\" << Logger::endl;\n"
+        result += "            return false;\n"
+        result += "        }\n"
+        result += "        else if (result == SHM_FATAL) {\n"
+        result += "            Logger::log() << Logger::Error << \"shm_connect_reader('" + buf_name + "'): memory error\" << Logger::endl;\n"
+        result += "            return false;\n"
+        result += "        }\n"
+        result += "        else if (result == SHM_NO_CHANNEL) {\n"
+        result += "            Logger::log() << Logger::Warning << \"shm_connect_reader('" + buf_name + "'): could not open shm object, trying to initialize the channel...\" << Logger::endl;\n"
+        result += "            create_channel_" + buf_name + " = true;\n"
+        result += "        }\n"
+        result += "        else if (result == SHM_CHANNEL_INCONSISTENT) {\n"
+        result += "            Logger::log() << Logger::Warning << \"shm_connect_reader('" + buf_name + "'): shm channel is inconsistent, trying to initialize the channel...\" << Logger::endl;\n"
+        result += "            create_channel_" + buf_name + " = true;\n"
+        result += "        }\n"
+        result += "        else if (result == SHM_ERR_INIT) {\n"
+        result += "            Logger::log() << Logger::Error << \"shm_connect_reader('" + buf_name + "'): could not initialize channel\" << Logger::endl;\n"
+        result += "            return false;\n"
+        result += "        }\n"
+        result += "        else if (result == SHM_ERR_CREATE) {\n"
+        result += "            Logger::log() << Logger::Warning << \"shm_connect_reader('" + buf_name + "'): could not create reader\" << Logger::endl;\n"
+        result += "            create_channel_" + buf_name + " = true;\n"
+        result += "        }\n"
+
+        result += "        if (!create_channel_" + buf_name + ") {\n"
+        result += "            Logger::log() << Logger::Info << \"trying to read from channel\" << Logger::endl;\n"
+        result += "            void *pbuf = NULL;\n"
+        result += "            result = shm_reader_buffer_get(re_" + buf_name + "_, &pbuf);\n"
+        result += "            if (result < 0) {\n"
+        result += "                Logger::log() << Logger::Warning << \"shm_reader_buffer_get('" + buf_name + "'): error: \" << result << Logger::endl;\n"
+        result += "                create_channel_" + buf_name + " = true;\n"
+        result += "            }\n"
+        result += "        }\n"
+
+        result += "        if (create_channel_" + buf_name + ") {\n"
+        result += "            size_t data_size;\n"
+        if buf.converter:
+            result += "            data_size = converter_" + buf_name + "_->getDataSize();\n"
+        else:
+            result += "            data_size = sizeof(" + buf.getTypeCpp() + ");\n"
+        result += "            Logger::log() << Logger::Info << \"trying to create channel\" << Logger::endl;\n"
+        result += "            result = shm_create_channel(channel_name_" + buf_name + "_.c_str(), data_size, 1, true);\n"
+        result += "            if (result != 0) {\n"
+        result += "                Logger::log() << Logger::Error << \"create_shm_object('" + buf_name + "'): error: \" << result << \"   errno: \" << errno << Logger::endl;\n"
+        result += "                return false;\n"
+        result += "            }\n"
+
+        result += "            Logger::log() << Logger::Info << \"trying to connect to channel\" << Logger::endl;\n"
+        result += "            result = shm_connect_reader(channel_name_" + buf_name + "_.c_str(), &re_" + buf_name + "_);\n"
+        result += "            if (result != 0) {\n"
+        result += "                Logger::log() << Logger::Error << \"shm_connect_reader('" + buf_name + "'): error: \" << result << Logger::endl;\n"
+        result += "                return false;\n"
+        result += "            }\n"
+        result += "        }\n"
+
+        result += "        result = shm_reader_buffer_get(re_" + buf_name + "_, &pbuf);\n"
+        result += "        if (result < 0) {\n"
+        result += "            Logger::log() << Logger::Error << \"shm_reader_buffer_get('" + buf_name + "'): error: \" << result << Logger::endl;\n"
+        result += "            return false;\n"
+        result += "        }\n"
+    elif shm_version == 2:
+        if buf.converter:
+            data_size_code = "converter_" + buf_name + "_->getDataSize()"
+        else:
+            data_size_code = "sizeof(" + buf.getTypeCpp() + ")"
+        result = '{}re_{}_.reset(new ShmReader(channel_name_{}_.c_str(), {}, 1));\n'.format(indent, buf_name, buf_name, data_size_code)
+        result += '{}re_{}_->connect();\n'.format(indent, buf_name)
+    else:
+        raise Exception('Wrong version of shm: "{}"'.format(shm_version))
+    return result
+
+def getShmCodeReaderCleanup(indent, shm_version, buf):
+    if shm_version == 1:
+        result = "        shm_release_reader(re_{}_);\n".format(buf.alias)
+    elif shm_version == 2:
+        result = ""
+    else:
+        raise Exception('Wrong version of shm: "{}"'.format(shm_version))
+    return result
+
+def getShmCodeReaderTimedWait(indent, shm_version, buf):
+    if shm_version == 1:
+        result = "{}read_status = shm_reader_buffer_timedwait(re_{}_, &ts, &pbuf);\n".format(indent, buf.alias)
+    elif shm_version == 2:
+        result = '{}read_status = re_{}_->getBufferTimedWait(&ts, &pbuf);\n'.format(indent, buf.alias)
+    else:
+        raise Exception('Wrong version of shm: "{}"'.format(shm_version))
+    return result
+
+def getShmCodeReaderGet(indent, shm_version, buf):
+    if shm_version == 1:
+        result = "{}read_status = shm_reader_buffer_get(re_{}_, &pbuf);\n".format(indent, buf.alias)
+    elif shm_version == 2:
+        result = '{}read_status = re_{}_->getBuffer(&pbuf);\n'.format(indent, buf.alias)
+    else:
+        raise Exception('Wrong version of shm: "{}"'.format(shm_version))
+    return result
+
+def getShmCodeReaderDeclaration(indent, shm_version, buf):
+    if shm_version == 1:
+        result = "{}shm_reader_t* re_{}_;\n".format(indent, buf.alias)
+    elif shm_version == 2:
+        result = "{}std::shared_ptr<ShmReader > re_{}_;\n".format(indent, buf.alias)
+    else:
+        raise Exception('Wrong version of shm: "{}"'.format(shm_version))
+    return result        
+
 def generate_boost_serialization(package, port_def, output_cpp):
     """
     Generate a boost::serialization header
@@ -113,6 +235,8 @@ def generate_boost_serialization(package, port_def, output_cpp):
     @type msg_path: str
     """
     mc = genmsg.msg_loader.MsgContext()
+
+    shm_version = 2
 
     with open(port_def, 'r') as f:
         read_data = f.read()
@@ -143,7 +267,8 @@ def generate_boost_serialization(package, port_def, output_cpp):
             s.write("#include <common_interfaces/abstract_buffer_converter.h>\n")
             break
 
-    s.write("#include <shm_comm/shm_channel.h>\n")
+    s.write( getShmCodeInclude(shm_version) )
+
     s.write("#include <vector>\n")
     s.write("#include <string>\n")
 
@@ -366,69 +491,8 @@ def generate_boost_serialization(package, port_def, output_cpp):
 
         s.write("        bool create_channel_" + buf_name + " = false;\n")
 
-        s.write("        Logger::log() << Logger::Info << \"trying to connect to channel\" << Logger::endl;\n")
-        s.write("        result = shm_connect_reader(channel_name_" + buf_name + "_.c_str(), &re_" + buf_name + "_);\n")
-        s.write("        if (result == SHM_INVAL) {\n")
-        s.write("            Logger::log() << Logger::Error << \"shm_connect_reader('" + buf_name + "'): invalid parameters\" << Logger::endl;\n")
-        s.write("            return false;\n")
-        s.write("        }\n")
-        s.write("        else if (result == SHM_FATAL) {\n")
-        s.write("            Logger::log() << Logger::Error << \"shm_connect_reader('" + buf_name + "'): memory error\" << Logger::endl;\n")
-        s.write("            return false;\n")
-        s.write("        }\n")
-        s.write("        else if (result == SHM_NO_CHANNEL) {\n")
-        s.write("            Logger::log() << Logger::Warning << \"shm_connect_reader('" + buf_name + "'): could not open shm object, trying to initialize the channel...\" << Logger::endl;\n")
-        s.write("            create_channel_" + buf_name + " = true;\n")
-        s.write("        }\n")
-        s.write("        else if (result == SHM_CHANNEL_INCONSISTENT) {\n")
-        s.write("            Logger::log() << Logger::Warning << \"shm_connect_reader('" + buf_name + "'): shm channel is inconsistent, trying to initialize the channel...\" << Logger::endl;\n")
-        s.write("            create_channel_" + buf_name + " = true;\n")
-        s.write("        }\n")
-        s.write("        else if (result == SHM_ERR_INIT) {\n")
-        s.write("            Logger::log() << Logger::Error << \"shm_connect_reader('" + buf_name + "'): could not initialize channel\" << Logger::endl;\n")
-        s.write("            return false;\n")
-        s.write("        }\n")
-        s.write("        else if (result == SHM_ERR_CREATE) {\n")
-        s.write("            Logger::log() << Logger::Warning << \"shm_connect_reader('" + buf_name + "'): could not create reader\" << Logger::endl;\n")
-        s.write("            create_channel_" + buf_name + " = true;\n")
-        s.write("        }\n")
+        s.write( getShmCodeReaderConfigure("        ", shm_version, buf_in) )
 
-        s.write("        if (!create_channel_" + buf_name + ") {\n")
-        s.write("            Logger::log() << Logger::Info << \"trying to read from channel\" << Logger::endl;\n")
-        s.write("            void *pbuf = NULL;\n")
-        s.write("            result = shm_reader_buffer_get(re_" + buf_name + "_, &pbuf);\n")
-        s.write("            if (result < 0) {\n")
-        s.write("                Logger::log() << Logger::Warning << \"shm_reader_buffer_get('" + buf_name + "'): error: \" << result << Logger::endl;\n")
-        s.write("                create_channel_" + buf_name + " = true;\n")
-        s.write("            }\n")
-        s.write("        }\n")
-
-        s.write("        if (create_channel_" + buf_name + ") {\n")
-        s.write("            size_t data_size;\n")
-        if buf_in.converter:
-            s.write("            data_size = converter_" + buf_name + "_->getDataSize();\n")
-        else:
-            s.write("            data_size = sizeof(" + buf_in.getTypeCpp() + ");\n")
-        s.write("            Logger::log() << Logger::Info << \"trying to create channel\" << Logger::endl;\n")
-        s.write("            result = shm_create_channel(channel_name_" + buf_name + "_.c_str(), data_size, 1, true);\n")
-        s.write("            if (result != 0) {\n")
-        s.write("                Logger::log() << Logger::Error << \"create_shm_object('" + buf_name + "'): error: \" << result << \"   errno: \" << errno << Logger::endl;\n")
-        s.write("                return false;\n")
-        s.write("            }\n")
-
-        s.write("            Logger::log() << Logger::Info << \"trying to connect to channel\" << Logger::endl;\n")
-        s.write("            result = shm_connect_reader(channel_name_" + buf_name + "_.c_str(), &re_" + buf_name + "_);\n")
-        s.write("            if (result != 0) {\n")
-        s.write("                Logger::log() << Logger::Error << \"shm_connect_reader('" + buf_name + "'): error: \" << result << Logger::endl;\n")
-        s.write("                return false;\n")
-        s.write("            }\n")
-        s.write("        }\n")
-
-        s.write("        result = shm_reader_buffer_get(re_" + buf_name + "_, &pbuf);\n")
-        s.write("        if (result < 0) {\n")
-        s.write("            Logger::log() << Logger::Error << \"shm_reader_buffer_get('" + buf_name + "'): error: \" << result << Logger::endl;\n")
-        s.write("            return false;\n")
-        s.write("        }\n")
         s.write("        buf_prev_" + buf_name + "_ = pbuf;\n")
 
     s.write("        return true;\n")
@@ -439,7 +503,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
 #
     s.write("    void cleanupBuffers() {\n")
     for buf_in in sd.buffers_in:
-        s.write("        shm_release_reader(re_" + buf_in.alias + "_);\n")
+        s.write( getShmCodeReaderCleanup("        ", shm_version, buf_in) )
     s.write("    }\n\n")
 
 #
@@ -638,7 +702,8 @@ def generate_boost_serialization(package, port_def, output_cpp):
             s.write("                        ++ts.tv_sec;\n")
             s.write("                    }\n")
 
-            s.write("                    read_status = shm_reader_buffer_timedwait(re_" + buf_name + "_, &ts, &pbuf);\n")
+            s.write( getShmCodeReaderTimedWait("                    ", shm_version, buf_in) )
+
             s.write("                    double host_elapsed = (rtt_rosclock::host_now()-start).toSec();\n")
             s.write("                    if (read_status != SHM_TIMEOUT || host_elapsed > timeout_s) {\n")
             s.write("                        break;\n")
@@ -650,7 +715,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
 
             s.write("            }\n")
             s.write("            else {\n")
-            s.write("                read_status = shm_reader_buffer_get(re_" + buf_name + "_, &pbuf);\n")
+            s.write( getShmCodeReaderGet("                ", shm_version, buf_in) )
             s.write("            }\n")
 
             s.write("            if (read_status == SHM_TIMEOUT) {\n")
@@ -687,7 +752,8 @@ def generate_boost_serialization(package, port_def, output_cpp):
             if not buf_in:
                 raise Exception('buffer not found', 'buffer specified in trigger methods <read_data>: \'' + buf_name + '\' could not be found in defined buffers')
 
-            s.write("            read_status = shm_reader_buffer_get(re_" + buf_name + "_, &pbuf);\n")
+            s.write( getShmCodeReaderGet("            ", shm_version, buf_in) )
+            #s.write("            read_status = shm_reader_buffer_get(re_" + buf_name + "_, &pbuf);\n")
 
             s.write("            if (read_status == 0 && pbuf != buf_prev_" + buf_name + "_) {\n")
             s.write("                buf_prev_" + buf_name + "_ = pbuf;\n")
@@ -750,7 +816,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
     for buf_in in sd.buffers_in:
         buf_name = buf_in.alias
         s.write("    std::string channel_name_" + buf_name + "_;\n")
-        s.write("    shm_reader_t* re_" + buf_name + "_;\n")
+        s.write( getShmCodeReaderDeclaration("    ", shm_version, buf_in) )
         s.write("    void *buf_prev_" + buf_name + "_;\n")
 
         if buf_in.converter:
