@@ -66,9 +66,11 @@ public:
     class End {
     protected:
         const ros::Time m_timestamp;
+        const ros::WallTime m_walltime;
     public:
         End();
         const ros::Time& getTimestamp() const;
+        const ros::WallTime& getWallTime() const;
     };
 protected:
     class LoggerInterfaceData {

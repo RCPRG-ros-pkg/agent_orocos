@@ -48,10 +48,15 @@ std::mutex FabricLogger::m_mutex;
 
 FabricLogger::End::End()
 : m_timestamp(ros::Time::now())
+, m_walltime(ros::WallTime::now())
 {}
 
 const ros::Time& FabricLogger::End::getTimestamp() const {
     return m_timestamp;
+}
+
+const ros::WallTime& FabricLogger::End::getWallTime() const {
+    return m_walltime;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -319,12 +324,17 @@ void FabricLogger::FabricLogger::LoggerInterfaceData::addItem(const std::string&
 
 void FabricLogger::LoggerInterfaceData::addItem(const FabricLogger::End& end) {
     const ros::Time& timestamp = end.getTimestamp();
-    const int buf_size = sizeof(timestamp.sec) + sizeof(timestamp.nsec);
+    const ros::WallTime& walltime = end.getWallTime();
+    const int buf_size = sizeof(uint32_t) * 4;
     unsigned char buf[buf_size];
     uint32_t sec = timestamp.sec;
     uint32_t nsec = timestamp.nsec;
+    uint32_t wsec = walltime.sec;
+    uint32_t wnsec = walltime.nsec;
     *((uint32_t*)(&buf[0])) = sec;
     *((uint32_t*)(&buf[sizeof(uint32_t)])) = nsec;
+    *((uint32_t*)(&buf[sizeof(uint32_t)*2])) = wsec;
+    *((uint32_t*)(&buf[sizeof(uint32_t)*3])) = wnsec;
     m_buf.addItem(ITEM_END, buf, buf_size);
 }
 
@@ -344,8 +354,10 @@ std::vector<std::string> FabricLogger::FabricLogger::LoggerInterfaceData::getAll
             if (item_type == ITEM_END) {
                 uint32_t sec = (*((uint32_t*)item_data_ptr));
                 uint32_t nsec = (*((uint32_t*)&item_data_ptr[sizeof(uint32_t)]));
+                uint32_t wsec = (*((uint32_t*)&item_data_ptr[sizeof(uint32_t)*2]));
+                uint32_t wnsec = (*((uint32_t*)&item_data_ptr[sizeof(uint32_t)*3]));
 
-                ss << "Time(" << sec << ";" << nsec << ")";
+                ss << "Time(" << sec << ";" << nsec << ";" << wsec << ";" << wnsec << ")";
                 result.push_back(ss.str());
                 ss = std::stringstream();
             }

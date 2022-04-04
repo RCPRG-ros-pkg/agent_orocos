@@ -86,17 +86,22 @@ def assertLineBeginning(line, line_idx, value):
         raise Exception('Line "{}" ({}) should start with "{}"'.format(line, line_idx, value))
 
 class FabricLogEntry:
-    def __init__(self, component_name, log_time, value):
+    def __init__(self, subsystem_id, component_name, log_time, wall_time, value):
+        self.__subsystem_id = subsystem_id
         self.__component_name = component_name
         self.__log_time = log_time
+        self.__wall_time = wall_time
         self.__value = value
 
     def __str__(self):
-        return '{}.{:09d}: {}: {}'.format(self.__log_time.secs, self.__log_time.nsecs,
-                                                            self.__component_name, self.__value)
+        return '{}.{:09d}: {}: {}: {}'.format(self.__wall_time.secs, self.__wall_time.nsecs,
+                                        self.__subsystem_id, self.__component_name, self.__value)
 
     def getTime(self):
         return self.__log_time
+
+    def getWallTime(self):
+        return self.__wall_time
 
     def getComponentName(self):
         return self.__component_name
@@ -120,10 +125,12 @@ class FabricLog:
         line_str = line[0:idx]
         time_str = line[idx+5:-1]
         time_fields = time_str.split(';')
-        assert len(time_fields) == 2
+        assert len(time_fields) == 4
         time_s = int(time_fields[0])
         time_ns = int(time_fields[1])
-        return line_str, rospy.Time(time_s, time_ns)
+        wtime_s = int(time_fields[2])
+        wtime_ns = int(time_fields[3])
+        return line_str, rospy.Time(time_s, time_ns), rospy.Time(wtime_s, wtime_ns)
 
     def parseValue(self, lines, line_idx):
         line = lines[line_idx]
@@ -135,7 +142,7 @@ class FabricLog:
         value = line[16:-1]
         return line_idx+1, value
 
-    def parseComponentLog(self, lines, line_idx):
+    def parseComponentLog(self, lines, line_idx, subsystem_id):
         line = lines[line_idx]
         if line == '---':
             return line_idx+1, None
@@ -156,12 +163,12 @@ class FabricLog:
             line_idx, value = self.parseValue(lines, line_idx)
             if value == None:
                 break
-            value, log_time = self.extractTime(value)
-            values.append( FabricLogEntry(component_name, log_time, value) )
+            value, log_time, wall_time = self.extractTime(value)
+            values.append( FabricLogEntry(subsystem_id, component_name, log_time, wall_time, value) )
             #print(values[-1])
         return line_idx, values
 
-    def parseMessage(self, lines, line_idx):
+    def parseMessage(self, lines, line_idx, subsystem_id):
         line = lines[line_idx]
         assertLine(line, line_idx, 'header: ')
         line_idx = line_idx + 6
@@ -169,41 +176,41 @@ class FabricLog:
         assertLine(line, line_idx, 'status: ')
         line_idx = line_idx + 1
         while True:
-            line_idx, values = self.parseComponentLog(lines, line_idx)
+            line_idx, values = self.parseComponentLog(lines, line_idx, subsystem_id)
             if values is None:
                 break
             self.__all_values = self.__all_values + values
         return line_idx
 
-    def parseFile(self, filename):
+    def parseFile(self, filename, subsystem_id):
         with open(filename, 'r') as f:
             #lines = f.readlines()
             lines = f.read().splitlines()
         line_idx = 0
         lines_count = len(lines)
         while line_idx < lines_count:
-            line_idx = self.parseMessage(lines, line_idx)
+            line_idx = self.parseMessage(lines, line_idx, subsystem_id)
 
     def sortLogs(self):
-        self.__all_values = sorted(self.__all_values, key=lambda x:x.getTime())
+        self.__all_values = sorted(self.__all_values, key=lambda x:x.getWallTime())
 
 def main():
-    path = '/home/dseredyn/ws_velma_sim_2019_07_30/ws_velma_os'
+    path = '.'
     files = [
-        #'velma_task_cs_ros_interface.txt',
-        #'velma_sim_gazebo.txt',
-        #'velma_core_cs.txt',
-        'velma_core_ve_body.txt',
+        #'velma_task_cs_ros_interface',
+        'velma_sim_gazebo',
+        #'velma_core_cs',
+        'velma_core_ve_body',
     ]
     fabric_log = FabricLog()
     for filename in files:
         print('Reading {}'.format(filename))
-        fabric_log.parseFile('{}/{}'.format(path,filename))
+        fabric_log.parseFile('{}/{}.txt'.format(path,filename), filename)
 
     if sys.argv[1] == 'left':
-        components_list = [ 'lHand', 'LeftHand', 'LeftHandAction', 'can_queue_tx_l', 'lHand_EcCanQueue']
+        components_list = [ 'lHand', 'LeftHand', 'LeftHandAction', 'can_queue_tx_l', 'lHand_EcCanQueue', 'LeftHand_EcCanQueue']
     elif sys.argv[1] == 'right':
-        components_list = [ 'rHand', 'RightHand', 'RightHandAction', 'can_queue_tx_r', 'rHand_EcCanQueue']
+        components_list = [ 'rHand', 'RightHand', 'RightHandAction', 'can_queue_tx_r', 'rHand_EcCanQueue', 'RighHand_EcCanQueue']
     else:
         raise Exception()
 
