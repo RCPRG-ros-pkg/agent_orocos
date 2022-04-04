@@ -32,6 +32,7 @@
 #
 
 import rospy
+import sys
 
 from os import listdir
 from os.path import isfile, join
@@ -187,11 +188,11 @@ class FabricLog:
         self.__all_values = sorted(self.__all_values, key=lambda x:x.getTime())
 
 def main():
-    path = '/home/dseredyn/ws_velma_2020_11_25/ws_velma_os/velma_logs/catched'
+    path = '/home/dseredyn/ws_velma_sim_2019_07_30/ws_velma_os'
     files = [
-        'velma_task_cs_ros_interface.txt',
-        'velma_sim_gazebo.txt',
-        'velma_core_cs.txt',
+        #'velma_task_cs_ros_interface.txt',
+        #'velma_sim_gazebo.txt',
+        #'velma_core_cs.txt',
         'velma_core_ve_body.txt',
     ]
     fabric_log = FabricLog()
@@ -199,8 +200,15 @@ def main():
         print('Reading {}'.format(filename))
         fabric_log.parseFile('{}/{}'.format(path,filename))
 
+    if sys.argv[1] == 'left':
+        components_list = [ 'lHand', 'LeftHand', 'LeftHandAction', 'can_queue_tx_l', 'lHand_EcCanQueue']
+    elif sys.argv[1] == 'right':
+        components_list = [ 'rHand', 'RightHand', 'RightHandAction', 'can_queue_tx_r', 'rHand_EcCanQueue']
+    else:
+        raise Exception()
+
     fabric_log.sortLogs()
-    for value in fabric_log.getValuesForComponents(['lHand', 'LeftHand', 'LeftHandAction']):
+    for value in fabric_log.getValuesForComponents(components_list):
         print value
 
     return 0
