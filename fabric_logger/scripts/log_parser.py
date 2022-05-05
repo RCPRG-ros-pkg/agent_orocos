@@ -116,7 +116,7 @@ class FabricLog:
     def getValuesForComponents(self, components_list):
         result = []
         for value in self.__all_values:
-            if value.getComponentName() in components_list:
+            if components_list is None or value.getComponentName() in components_list:
                 result.append(value)
         return result
 
@@ -188,31 +188,39 @@ class FabricLog:
             lines = f.read().splitlines()
         line_idx = 0
         lines_count = len(lines)
+        last_print = 0
         while line_idx < lines_count:
             line_idx = self.parseMessage(lines, line_idx, subsystem_id)
+            if line_idx > last_print+10000:
+                print('line {} out of {}'.format(line_idx, lines_count))
+                last_print = line_idx
 
     def sortLogs(self):
         self.__all_values = sorted(self.__all_values, key=lambda x:x.getWallTime())
 
 def main():
     path = '.'
-    files = [
-        #'velma_task_cs_ros_interface',
-        'velma_sim_gazebo',
-        #'velma_core_cs',
-        'velma_core_ve_body',
-    ]
+    #files = [
+    #    #'velma_task_cs_ros_interface',
+    #    'velma_sim_gazebo',
+    #    #'velma_core_cs',
+    #    'velma_core_ve_body',
+    #]
     fabric_log = FabricLog()
-    for filename in files:
-        print('Reading {}'.format(filename))
-        fabric_log.parseFile('{}/{}.txt'.format(path,filename), filename)
+    #for filename in files:
+    #    print('Reading {}'.format(filename))
+    #    fabric_log.parseFile('{}/{}.txt'.format(path,filename), filename)
 
-    if sys.argv[1] == 'left':
-        components_list = [ 'lHand', 'LeftHand', 'LeftHandAction', 'can_queue_tx_l', 'lHand_EcCanQueue', 'LeftHand_EcCanQueue']
-    elif sys.argv[1] == 'right':
-        components_list = [ 'rHand', 'RightHand', 'RightHandAction', 'can_queue_tx_r', 'rHand_EcCanQueue', 'RighHand_EcCanQueue']
-    else:
-        raise Exception()
+    #if sys.argv[1] == 'left':
+    #    components_list = [ 'lHand', 'LeftHand', 'LeftHandAction', 'can_queue_tx_l', 'lHand_EcCanQueue', 'LeftHand_EcCanQueue']
+    #elif sys.argv[1] == 'right':
+    #    components_list = [ 'rHand', 'RightHand', 'RightHandAction', 'can_queue_tx_r', 'rHand_EcCanQueue', 'RighHand_EcCanQueue']
+    #else:
+    #    raise Exception()
+
+    fabric_log.parseFile(sys.argv[1], 'visual_servo_head')
+
+    components_list = [ 'visual_servo' ]
 
     fabric_log.sortLogs()
     for value in fabric_log.getValuesForComponents(components_list):
