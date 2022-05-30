@@ -891,6 +891,7 @@ void MasterComponent::updateHook() {
     }
     else {
         read_buffer_timeout_ = master_service_->getStateBufferGroup(current_state_id_).next_timeout;
+        m_fabric_logger << "Could not read buffer group: " << master_service_->getStateBufferGroup(current_state_id_).id << FabricLogger::End();
     }
 
     trigger();
