@@ -289,7 +289,7 @@ MasterComponent::MasterComponent(const std::string &name)
     , read_buffer_timeout_(0.0)
     , use_sim_time_(false)
     , time_last_s_(0.0)
-    , m_fabric_logger( FabricLogger::createNewInterfaceRt( "master_component", 100000) )
+    , m_fabric_logger( FabricLogger::createNewInterfaceRt( "master_component", 2000000) )
 {
     this->addOperation("getDiag", &MasterComponent::getDiag, this, RTT::ClientThread);
 
