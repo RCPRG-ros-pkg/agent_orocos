@@ -199,7 +199,7 @@ public:
 
 private:
     void calculateConflictingComponents();
-    bool isGraphOk() const;
+    bool isGraphOk();
 
     void logStateSwitch(int new_state_id, subsystem_common::PredicateListConstPtr pred);
 
@@ -652,7 +652,7 @@ void MasterComponent::cleanupHook() {
 void MasterComponent::stopHook() {
 }
 
-bool MasterComponent::isGraphOk() const {
+bool MasterComponent::isGraphOk() {
 
     int current_graph_id = current_state_id_;
     const std::vector<bool >& beh_running_vec = is_running_in_behavior_[current_graph_id];
