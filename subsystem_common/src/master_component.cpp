@@ -662,12 +662,12 @@ bool MasterComponent::isGraphOk() const {
         RTT::TaskContext::TaskState state = scheme_peers_const_[i]->getTaskState();
 
         if (beh_running_vec[i] && state != RTT::TaskContext::Running) {
-            Logger::log() << Logger::Error << "switchable component \'" << name << "\' should be running" << Logger::endl;
+            m_fabric_logger << "switchable component \'" << name << "\' should be running" << FabricLogger::End();
             return false;
         }
 
         if (!beh_running_vec[i] && state != RTT::TaskContext::Stopped) {
-            Logger::log() << Logger::Error << "switchable component \'" << name << "\' should be stopped" << Logger::endl;
+            m_fabric_logger << "switchable component \'" << name << "\' should be stopped"<< FabricLogger::End();
             return false;
         }
     }
