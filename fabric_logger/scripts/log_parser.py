@@ -94,7 +94,7 @@ class FabricLogEntry:
         self.__value = value
 
     def __str__(self):
-        return '{}.{:09d}: {}: {}: {}'.format(self.__wall_time.secs, self.__wall_time.nsecs,
+        return '{}.{:09d}, {}, {}, {}'.format(self.__wall_time.secs, self.__wall_time.nsecs,
                                         self.__subsystem_id, self.__component_name, self.__value)
         #return '{}.{:09d}, {}'.format(self.__wall_time.secs, self.__wall_time.nsecs, self.__value)
 
@@ -189,11 +189,38 @@ class FabricLog:
         with open(filename, 'r') as f:
             #lines = f.readlines()
             lines = f.read().splitlines()
+
+        # Merge lines splitted with "\"
+        lines2 = []
+        line_prev = None
+        for line in lines:
+            if not line_prev is None:
+                # This line continues the previous line(s)
+                idx = line.find('\\')
+                #print('line: "{}"'.format( line ))
+                #print idx
+                assert idx >= 0
+                this_line = line[idx+1:]
+            else:
+                this_line = line
+
+            if this_line.endswith('\\'):
+                if line_prev is None:
+                    line_prev = this_line[0:-1]
+                else:
+                    line_prev = line_prev + this_line[0:-1]
+            else:
+                if line_prev is None:
+                    lines2.append( this_line )
+                else:
+                    lines2.append( line_prev + this_line )
+                    line_prev = None
+
         line_idx = 0
-        lines_count = len(lines)
+        lines_count = len(lines2)
         last_print = 0
         while line_idx < lines_count:
-            line_idx = self.parseMessage(lines, line_idx, subsystem_id)
+            line_idx = self.parseMessage(lines2, line_idx, subsystem_id)
             if line_idx > last_print+10000:
                 print('line {} out of {}'.format(line_idx, lines_count))
                 last_print = line_idx
@@ -202,18 +229,23 @@ class FabricLog:
         self.__all_values = sorted(self.__all_values, key=lambda x:x.getWallTime())
 
 def main():
-    path = '.'
-    files = [
-    #    #'velma_task_cs_ros_interface',
-    #    'velma_sim_gazebo',
-        #'velma_sim',
-        'velma_core_cs',
-        'velma_core_ve_body',
-    ]
+    if len(sys.argv < 2):
+        data_description_file = 'data.txt'
+    else:
+        data_description_file = sys.argv[1]
+
+    print('Reading data description file: "{}"'.format(data_description_file))
+    with open(data_description_file, 'r') as f:
+        lines = f.readlines()
+    files = []
+    for line in lines:
+        files.append( line.strip() )
+
     fabric_log = FabricLog()
     for filename in files:
         print('Reading {}'.format(filename))
-        fabric_log.parseFile('{}/{}.txt'.format(path,filename), filename)
+        #fabric_log.parseFile('{}/{}.txt'.format(path,filename), filename)
+        fabric_log.parseFile(filename, filename)
 
     #if sys.argv[1] == 'left':
     #    components_list = [ 'lHand', 'LeftHand', 'LeftHandAction', 'can_queue_tx_l', 'lHand_EcCanQueue', 'LeftHand_EcCanQueue']
@@ -224,13 +256,16 @@ def main():
 
     #fabric_log.parseFile(sys.argv[1], 'visual_servo_head')
 
-    #components_list = [ 'visual_servo' ]
-
-    components_list = None   # all components
+    components_list = [ 'visual_servo' ]
 
     fabric_log.sortLogs()
+    out_data = ''
     for value in fabric_log.getValuesForComponents(components_list):
-        print value
+        #print value
+        out_data += '{}\n'.format(value)
+
+    with open('log.txt', 'w') as f:
+        f.write(out_data)
 
     return 0
 
