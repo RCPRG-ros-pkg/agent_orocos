@@ -96,6 +96,7 @@ class FabricLogEntry:
     def __str__(self):
         return '{}.{:09d}: {}: {}: {}'.format(self.__wall_time.secs, self.__wall_time.nsecs,
                                         self.__subsystem_id, self.__component_name, self.__value)
+        #return '{}.{:09d}, {}'.format(self.__wall_time.secs, self.__wall_time.nsecs, self.__value)
 
     def getTime(self):
         return self.__log_time
@@ -125,6 +126,8 @@ class FabricLog:
         line_str = line[0:idx]
         time_str = line[idx+5:-1]
         time_fields = time_str.split(';')
+        #print line
+        #print time_fields 
         assert len(time_fields) == 4
         time_s = int(time_fields[0])
         time_ns = int(time_fields[1])
@@ -200,16 +203,17 @@ class FabricLog:
 
 def main():
     path = '.'
-    #files = [
+    files = [
     #    #'velma_task_cs_ros_interface',
     #    'velma_sim_gazebo',
-    #    #'velma_core_cs',
-    #    'velma_core_ve_body',
-    #]
+        #'velma_sim',
+        'velma_core_cs',
+        'velma_core_ve_body',
+    ]
     fabric_log = FabricLog()
-    #for filename in files:
-    #    print('Reading {}'.format(filename))
-    #    fabric_log.parseFile('{}/{}.txt'.format(path,filename), filename)
+    for filename in files:
+        print('Reading {}'.format(filename))
+        fabric_log.parseFile('{}/{}.txt'.format(path,filename), filename)
 
     #if sys.argv[1] == 'left':
     #    components_list = [ 'lHand', 'LeftHand', 'LeftHandAction', 'can_queue_tx_l', 'lHand_EcCanQueue', 'LeftHand_EcCanQueue']
@@ -218,9 +222,11 @@ def main():
     #else:
     #    raise Exception()
 
-    fabric_log.parseFile(sys.argv[1], 'visual_servo_head')
+    #fabric_log.parseFile(sys.argv[1], 'visual_servo_head')
 
-    components_list = [ 'visual_servo' ]
+    #components_list = [ 'visual_servo' ]
+
+    components_list = None   # all components
 
     fabric_log.sortLogs()
     for value in fabric_log.getValuesForComponents(components_list):
