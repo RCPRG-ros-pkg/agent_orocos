@@ -438,6 +438,7 @@ def generate_boost_serialization(package, port_def, output_cpp):
         state_id = sd.getStateId(st.name)
         s.write("        // " + st.name + "\n")
         s.write("        state_buffer_group_[" + str(state_id) + "].min_period = " + str(st.buffer_group_min_period) + ";\n")
+        s.write("        state_buffer_group_[" + str(state_id) + "].min_period_sim = " + str(st.buffer_group_min_period_sim) + ";\n")
         s.write("        state_buffer_group_[" + str(state_id) + "].first_timeout = " + str(st.buffer_group_first_timeout) + ";\n")
         s.write("        state_buffer_group_[" + str(state_id) + "].next_timeout = " + str(st.buffer_group_next_timeout) + ";\n")
         s.write("        state_buffer_group_[" + str(state_id) + "].first_timeout_sim = " + str(st.buffer_group_first_timeout_sim) + ";\n")

@@ -35,6 +35,7 @@ namespace subsystem_common {
 class BufferGroup {
 public:
     double min_period;
+    double min_period_sim;
     double first_timeout;
     double first_timeout_sim;
     double next_timeout;

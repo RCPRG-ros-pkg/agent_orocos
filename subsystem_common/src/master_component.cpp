@@ -869,7 +869,13 @@ void MasterComponent::updateHook() {
     }
 
     while (true) {
-        double timeout_s = master_service_->getStateBufferGroup(current_state_id_).min_period - (rtt_rosclock::host_now() - time_last_s_).toSec();  // calculate sleep time
+        double timeout_s;
+        if (use_sim_time_) {
+            timeout_s = master_service_->getStateBufferGroup(current_state_id_).min_period_sim - (rtt_rosclock::host_now() - time_last_s_).toSec();  // calculate sleep time
+        }
+        else {
+            timeout_s = master_service_->getStateBufferGroup(current_state_id_).min_period - (rtt_rosclock::host_now() - time_last_s_).toSec();  // calculate sleep time
+        }
         if (timeout_s <= 0) {
             break;
         }

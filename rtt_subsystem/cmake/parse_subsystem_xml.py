@@ -79,6 +79,10 @@ class SubsystemState:
             raise Exception('<state>', '<buffer_group> must have attribute \'min_period\'')
         self.buffer_group_min_period = float(buffer_group[0].getAttribute("min_period"))
 
+        if not buffer_group[0].getAttribute("min_period_sim"):
+            raise Exception('<state>', '<buffer_group> must have attribute \'min_period_sim\'')
+        self.buffer_group_min_period_sim = float(buffer_group[0].getAttribute("min_period_sim"))
+
         if not buffer_group[0].getAttribute("first_timeout"):
             raise Exception('<state>', '<buffer_group> must have attribute \'first_timeout\'')
         self.buffer_group_first_timeout = float(buffer_group[0].getAttribute("first_timeout"))
