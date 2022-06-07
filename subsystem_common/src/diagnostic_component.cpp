@@ -197,6 +197,8 @@ void DiagnosticComponent::updateHook() {
 
 
     // Logs managed with fabric_logger
+/*
+    // TODO: re-enable logging
     m_log_interface_names = FabricLogger::getInterfaceNames();
 
     log_out_.status.resize(m_log_interface_names.size());
@@ -216,6 +218,7 @@ void DiagnosticComponent::updateHook() {
         }
     }
     port_log_out_.write(log_out_);
+*/
 }
 
 ORO_LIST_COMPONENT_TYPE(DiagnosticComponent)
