@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import sys
 import copy
 import os
 
-from cStringIO import StringIO
+from io import StringIO
 import argparse
 import errno
 import math
@@ -245,11 +245,11 @@ def generateMsgsFromProcessImage(interface, msg_output_dir, top_level_name):
         (output_dir,filename) = os.path.split(output_msg)
         try:
             os.makedirs(output_dir)
-        except OSError, e:
+        except OSError as e:
             pass
 
         f = open(output_msg, 'w')
-        print >> f, s.getvalue()
+        f.write(s.getvalue() + '\n')
 
         s.close()
 
@@ -277,11 +277,11 @@ def generateMsgsFromProcessImage(interface, msg_output_dir, top_level_name):
     (output_dir,filename) = os.path.split(output_msg)
     try:
         os.makedirs(output_dir)
-    except OSError, e:
+    except OSError as e:
         pass
 
     f = open(output_msg, 'w')
-    print >> f, s.getvalue()
+    f.write(s.getvalue() + '\n')
 
     s.close()
 
@@ -411,11 +411,11 @@ def generate_msgs(package, ec_msg_converter_filename):
     (output_dir,filename) = os.path.split(ec_msg_converter_filename)
     try:
         os.makedirs(output_dir)
-    except OSError, e:
+    except OSError as e:
         pass
 
     f = open(ec_msg_converter_filename, 'w')
-    print >> f, s.getvalue()
+    f.write(s.getvalue() + '\n')
 
     s.close()
 
@@ -426,14 +426,14 @@ def create_msgs(argv, stdout, stderr):
 
     args = parser.parse_args()
 
-    print args.pkg[0], args.ec_msg_converter_filename[0]
+    print('{}, {}'.format(args.pkg[0], args.ec_msg_converter_filename[0]))
 
     generate_msgs(args.pkg[0], args.ec_msg_converter_filename[0])
 
 if __name__ == "__main__":
     try:
         create_msgs(sys.argv, sys.stdout, sys.stderr)
-    except Exception, e:
+    except Exception as e:
         sys.stderr.write("Failed to generate boost headers: " + str(e))
         raise
         #sys.exit(1)

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import sys
 
 import roslib
@@ -9,7 +9,7 @@ import genmsg
 from  roslib import packages,msgs
 import os
 
-from cStringIO import StringIO
+from io import StringIO
 
 import argparse
 
@@ -290,11 +290,11 @@ def generate_boost_serialization(package, port_def, output_cpp):
     (output_dir,filename) = os.path.split(output_cpp)
     try:
         os.makedirs(output_dir)
-    except OSError, e:
+    except OSError as e:
         pass
 
     f = open(output_cpp, 'w')
-    print >> f, s.getvalue()
+    f.write(s.getvalue() + '\n')
 
     s.close()
 
@@ -307,14 +307,14 @@ def create_boost_headers(argv, stdout, stderr):
 
     args = parser.parse_args()
 
-    print args.pkg[0], args.port_def[0], args.output_cpp[0]
+    print('{}, {}, {}'.format(args.pkg[0], args.port_def[0], args.output_cpp[0]))
 
     generate_boost_serialization(args.pkg[0], args.port_def[0], args.output_cpp[0])
 
 if __name__ == "__main__":
     try:
         create_boost_headers(sys.argv, sys.stdout, sys.stderr)
-    except Exception, e:
+    except Exception as e:
         sys.stderr.write("Failed to generate boost headers: " + str(e))
         raise
         #sys.exit(1)
